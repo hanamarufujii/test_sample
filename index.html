@@ -1,0 +1,427 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Designer's Eye</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #000;
+    --fg: #f2f2f2;
+    --dim: #6b6b6b;
+    --line: #262626;
+    --accent: #ff3b1f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: "Futura", "Futura PT", "Jost", "Century Gothic", sans-serif;
+    font-weight: 400;
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    user-select: none;
+  }
+  button {
+    font: inherit; letter-spacing: inherit; text-transform: inherit;
+    color: var(--fg); background: none; border: 1px solid var(--line);
+    padding: 10px 18px; cursor: pointer; transition: border-color .2s, color .2s;
+  }
+  button:hover { border-color: var(--fg); }
+  button.primary { border-color: var(--fg); }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 16px 48px; min-height: 100%; display: flex; flex-direction: column; }
+  header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+  header .logo { font-weight: 500; cursor: pointer; }
+  header .logo span { color: var(--accent); }
+  .meta { color: var(--dim); display: flex; gap: 20px; }
+  main { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 40px 0; }
+  footer { color: var(--dim); font-size: 9px; border-top: 1px solid var(--line); padding-top: 14px; display: flex; justify-content: space-between; }
+  .jp { text-transform: none; letter-spacing: 0.08em; color: var(--dim); font-size: 10px; }
+
+  /* menu */
+  .title { font-size: 11px; color: var(--dim); margin-bottom: 28px; }
+  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+  .mode { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 22px 18px 18px; cursor: pointer; display: flex; flex-direction: column; gap: 10px; min-height: 170px; transition: background .2s; }
+  .mode:hover { background: #0d0d0d; }
+  .mode .num { color: var(--dim); }
+  .mode .name { font-weight: 500; }
+  .mode .best { margin-top: auto; color: var(--dim); font-size: 9px; }
+  .mode .glyph { height: 40px; display: flex; align-items: center; }
+
+  /* stage */
+  .bar { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; }
+  .bar .task { display: flex; flex-direction: column; gap: 6px; }
+  .stage { position: relative; border: 1px solid var(--line); height: 360px; overflow: hidden; touch-action: none; }
+  .controls { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; gap: 12px; flex-wrap: wrap; }
+  .result { color: var(--dim); min-height: 1em; }
+  .result b { color: var(--fg); font-weight: 500; }
+  .dots { display: flex; gap: 6px; }
+  .dots i { width: 6px; height: 6px; border: 1px solid var(--dim); border-radius: 50%; display: block; }
+  .dots i.on { background: var(--fg); border-color: var(--fg); }
+
+  /* kern */
+  .kern-word { position: absolute; top: 50%; left: 0; width: 100%; height: 0; }
+  .kern-word span {
+    position: absolute; top: 0; transform: translateY(-50%);
+    font-size: 120px; font-weight: 500; letter-spacing: 0; line-height: 1;
+    cursor: ew-resize; color: var(--fg);
+  }
+  .kern-word span.fixed { cursor: default; color: var(--fg); }
+  .kern-word span.ghost { color: transparent; -webkit-text-stroke: 1px var(--accent); pointer-events: none; }
+
+  /* color */
+  .color-split { display: grid; grid-template-columns: 1fr 1fr; height: 100%; }
+  .color-split div { position: relative; }
+  .color-split label { position: absolute; left: 14px; bottom: 12px; font-size: 9px; mix-blend-mode: difference; color: #fff; }
+  .sliders { display: grid; gap: 14px; margin-top: 18px; }
+  .slider { display: grid; grid-template-columns: 24px 1fr 40px; align-items: center; gap: 14px; color: var(--dim); }
+  .slider span:last-child { text-align: right; color: var(--fg); }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 14px; background: transparent; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height: 1px; background: var(--line); }
+  input[type=range]::-moz-range-track { height: 1px; background: var(--line); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; border-radius: 50%; background: var(--fg); margin-top: -5px; }
+  input[type=range]::-moz-range-thumb { width: 10px; height: 10px; border-radius: 50%; background: var(--fg); border: 0; }
+
+  /* center / angle */
+  .shape { position: absolute; border: 1px solid var(--fg); }
+  .mark { position: absolute; width: 0; height: 0; }
+  .mark::before, .mark::after { content: ""; position: absolute; background: var(--fg); }
+  .mark::before { width: 15px; height: 1px; left: -7px; top: 0; }
+  .mark::after { width: 1px; height: 15px; left: 0; top: -7px; }
+  .mark.truth::before, .mark.truth::after { background: var(--accent); }
+  svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+  /* end */
+  .final { text-align: left; display: flex; flex-direction: column; gap: 22px; }
+  .final .score { font-size: 96px; font-weight: 300; letter-spacing: 0; line-height: 1; }
+  .final .rows { border-top: 1px solid var(--line); }
+  .final .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); color: var(--dim); }
+  .final .row b { color: var(--fg); font-weight: 400; }
+
+  @media (max-width: 600px) {
+    .stage { height: 280px; }
+    .kern-word span { font-size: 72px; }
+    .final .score { font-size: 64px; }
+    .meta .hide-sm { display: none; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo" id="home">Designer's Eye<span>.</span></div>
+    <div class="meta"><span class="hide-sm" id="modeLabel">Select a test</span><span id="roundLabel"></span></div>
+  </header>
+  <main id="main"></main>
+  <footer><span>A game for graphic designers</span><span>Trust your eye</span></footer>
+</div>
+
+<script>
+(() => {
+  const ROUNDS = 5;
+  const $main = document.getElementById('main');
+  const $mode = document.getElementById('modeLabel');
+  const $round = document.getElementById('roundLabel');
+  const rand = (a, b) => a + Math.random() * (b - a);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+
+  const store = {
+    get(k) { try { return Number(localStorage.getItem('de_' + k)) || 0; } catch { return 0; } },
+    set(k, v) { try { localStorage.setItem('de_' + k, String(v)); } catch {} }
+  };
+
+  // ---------- MODES ----------
+  const MODES = {
+    kern: {
+      name: 'Kerning', jp: '文字の間隔を視覚的に均等に整える',
+      task: 'Drag letters to balance the spacing', glyph: '<span style="font-size:28px;font-weight:500;letter-spacing:.02em">A&thinsp;V&thinsp;A</span>',
+      words: ['TYPE', 'AVATAR', 'WAVY', 'LOVE', 'FUTURA', 'KERN', 'VOLT', 'ATLAS', 'TOWAY', 'GLYPH', 'MOTIF', 'LAYOUT'],
+      setup(stage, ctx) {
+        const word = pick(this.words);
+        const box = el('div', 'kern-word');
+        stage.appendChild(box);
+        const spans = [...word].map(ch => { const s = el('span', '', ch); box.appendChild(s); return s; });
+        // Reference = the font's own kerned spacing, measured from the whole word
+        const widths = spans.map(s => s.getBoundingClientRect().width);
+        const ref = el('span', '', word); ref.style.visibility = 'hidden'; box.appendChild(ref);
+        const node = ref.firstChild, range = document.createRange();
+        const r0 = ref.getBoundingClientRect();
+        const rel = [...word].map((_, i) => { range.setStart(node, i); range.setEnd(node, i + 1); return range.getBoundingClientRect().left - r0.left; });
+        const startX = (stage.clientWidth - r0.width) / 2;
+        ref.remove();
+        const ideal = rel.map(p => startX + p);
+        const cur = ideal.slice();
+        const maxOff = Math.max(14, widths[0] * 0.35);
+        for (let i = 1; i < spans.length - 1; i++) cur[i] = ideal[i] + rand(-maxOff, maxOff);
+        // last letter also moves (relative), first stays as anchor
+        cur[spans.length - 1] = ideal[spans.length - 1] + rand(-maxOff, maxOff);
+        const draw = () => spans.forEach((s, i) => s.style.left = cur[i] + 'px');
+        spans[0].classList.add('fixed');
+        draw();
+        spans.forEach((s, i) => {
+          if (i === 0) return;
+          s.addEventListener('pointerdown', e => {
+            if (ctx.locked) return;
+            s.setPointerCapture(e.pointerId);
+            const sx = e.clientX, start = cur[i];
+            const lo = i > 0 ? cur[i - 1] + widths[i - 1] * 0.3 : -Infinity;
+            const hi = i < spans.length - 1 ? cur[i + 1] - widths[i] * 0.3 : Infinity;
+            const move = ev => { cur[i] = clamp(start + ev.clientX - sx, lo, hi); draw(); };
+            const up = () => { s.removeEventListener('pointermove', move); s.removeEventListener('pointerup', up); };
+            s.addEventListener('pointermove', move); s.addEventListener('pointerup', up);
+          });
+        });
+        return () => {
+          let err = 0;
+          for (let i = 1; i < spans.length; i++) err += Math.abs((cur[i] - cur[i - 1]) - (ideal[i] - ideal[i - 1]));
+          err /= spans.length - 1;
+          const score = Math.round(clamp(100 - err * 3.2, 0, 100));
+          spans.forEach((s, i) => { const g = el('span', 'ghost', s.textContent); g.style.left = ideal[i] + 'px'; box.appendChild(g); });
+          return { score, note: `Avg error <b>${err.toFixed(1)}px</b>` };
+        };
+      }
+    },
+
+    color: {
+      name: 'Color', jp: 'HSBスライダーで色を再現する',
+      task: 'Match the target color', glyph: '<span style="display:flex;gap:4px"><i style="width:18px;height:18px;background:#ff3b1f;display:block"></i><i style="width:18px;height:18px;background:#e0482c;display:block"></i></span>',
+      setup(stage, ctx, extra) {
+        const target = { h: rand(0, 360), s: rand(25, 100), b: rand(25, 100) };
+        const v = { h: 180, s: 50, b: 50 };
+        const split = el('div', 'color-split');
+        const t = el('div', '', '<label>Target</label>'), y = el('div', '', '<label>You</label>');
+        split.append(t, y); stage.appendChild(split);
+        t.style.background = hsb(target);
+        const paint = () => y.style.background = hsb(v);
+        paint();
+        const sl = el('div', 'sliders');
+        const outs = {};
+        [['h', 'H', 360], ['s', 'S', 100], ['b', 'B', 100]].forEach(([k, label, max]) => {
+          const row = el('div', 'slider');
+          const inp = el('input'); inp.type = 'range'; inp.min = 0; inp.max = max; inp.value = v[k];
+          const out = el('span', '', v[k]); outs[k] = out;
+          inp.addEventListener('input', () => { if (ctx.locked) return; v[k] = +inp.value; out.textContent = inp.value; paint(); });
+          row.append(el('span', '', label), inp, out); sl.appendChild(row);
+        });
+        extra.appendChild(sl);
+        return () => {
+          const d = deltaE(hsbToLab(target), hsbToLab(v));
+          const score = Math.round(clamp(100 - d * 2.2, 0, 100));
+          return { score, note: `ΔE <b>${d.toFixed(1)}</b> &nbsp; Target H${Math.round(target.h)} S${Math.round(target.s)} B${Math.round(target.b)}` };
+        };
+      }
+    },
+
+    center: {
+      name: 'Center', jp: '図形の中心（重心）を見抜く',
+      task: 'Click the center of the shape', glyph: '<svg viewBox="0 0 40 40" style="position:static;width:40px;height:40px"><polygon points="4,36 36,36 20,4" fill="none" stroke="#f2f2f2"/><circle cx="20" cy="25.3" r="1.6" fill="#ff3b1f"/></svg>',
+      setup(stage, ctx) {
+        const W = stage.clientWidth, H = stage.clientHeight;
+        const svg = svgEl('svg');
+        stage.appendChild(svg);
+        const kind = pick(['rect', 'tri', 'tri', 'poly']);
+        let pts;
+        const cx = rand(W * 0.35, W * 0.65), cy = rand(H * 0.4, H * 0.6), r = Math.min(W, H) * rand(0.28, 0.4);
+        if (kind === 'rect') {
+          const w = rand(r * 0.8, r * 1.8), h = rand(r * 0.6, r * 1.4);
+          pts = [[cx - w / 2, cy - h / 2], [cx + w / 2, cy - h / 2], [cx + w / 2, cy + h / 2], [cx - w / 2, cy + h / 2]];
+        } else {
+          const n = kind === 'tri' ? 3 : Math.floor(rand(4, 7));
+          const a0 = rand(0, Math.PI * 2);
+          pts = Array.from({ length: n }, (_, i) => {
+            const a = a0 + (i / n) * Math.PI * 2 + rand(-0.35, 0.35);
+            const rr = r * rand(0.6, 1.1);
+            return [cx + Math.cos(a) * rr, cy + Math.sin(a) * rr];
+          });
+        }
+        const poly = svgEl('polygon', { points: pts.map(p => p.join(',')).join(' '), fill: 'none', stroke: '#f2f2f2', 'stroke-width': 1 });
+        svg.appendChild(poly);
+        const c = centroid(pts);
+        let guess = null, mark = null;
+        stage.style.cursor = 'crosshair';
+        stage.onpointerdown = e => {
+          if (ctx.locked) return;
+          const rc = stage.getBoundingClientRect();
+          guess = [e.clientX - rc.left, e.clientY - rc.top];
+          if (!mark) { mark = el('div', 'mark'); stage.appendChild(mark); }
+          mark.style.left = guess[0] + 'px'; mark.style.top = guess[1] + 'px';
+          ctx.ready(true);
+        };
+        ctx.ready(false);
+        return () => {
+          stage.onpointerdown = null; stage.style.cursor = '';
+          const t = el('div', 'mark truth'); t.style.left = c[0] + 'px'; t.style.top = c[1] + 'px'; stage.appendChild(t);
+          const d = Math.hypot(guess[0] - c[0], guess[1] - c[1]);
+          const score = Math.round(clamp(100 - d * 2.5, 0, 100));
+          return { score, note: `Off by <b>${d.toFixed(1)}px</b>` };
+        };
+      }
+    },
+
+    angle: {
+      name: 'Angle', jp: '指定された角度を目測で作る',
+      task: '', glyph: '<svg viewBox="0 0 40 40" style="position:static;width:40px;height:40px"><line x1="6" y1="34" x2="36" y2="34" stroke="#6b6b6b"/><line x1="6" y1="34" x2="30" y2="10" stroke="#f2f2f2"/></svg>',
+      setup(stage, ctx, extra, bar) {
+        const target = Math.round(rand(5, 175));
+        bar.textContent = `Set the line to ${target}°`;
+        const W = stage.clientWidth, H = stage.clientHeight;
+        const ox = W / 2, oy = H * 0.78, L = Math.min(W * 0.42, H * 0.65);
+        const svg = svgEl('svg'); stage.appendChild(svg);
+        svg.appendChild(svgEl('line', { x1: ox - L, y1: oy, x2: ox + L, y2: oy, stroke: '#262626' }));
+        svg.appendChild(svgEl('circle', { cx: ox, cy: oy, r: 2.5, fill: '#f2f2f2' }));
+        const line = svgEl('line', { x1: ox, y1: oy, stroke: '#f2f2f2', 'stroke-width': 1 });
+        svg.appendChild(line);
+        let ang = rand(0, 180);
+        const draw = () => { const r = ang * Math.PI / 180; line.setAttribute('x2', ox + Math.cos(r) * L); line.setAttribute('y2', oy - Math.sin(r) * L); };
+        draw();
+        stage.style.cursor = 'grab';
+        const set = e => { const rc = stage.getBoundingClientRect(); const dx = e.clientX - rc.left - ox, dy = oy - (e.clientY - rc.top); ang = clamp(Math.atan2(dy, dx) * 180 / Math.PI, 0, 180); if (dy < 0) ang = dx > 0 ? 0 : 180; draw(); };
+        stage.onpointerdown = e => {
+          if (ctx.locked) return;
+          stage.setPointerCapture(e.pointerId); set(e);
+          stage.onpointermove = set;
+          stage.onpointerup = () => { stage.onpointermove = null; };
+        };
+        return () => {
+          stage.onpointerdown = stage.onpointermove = null; stage.style.cursor = '';
+          const r = target * Math.PI / 180;
+          svg.appendChild(svgEl('line', { x1: ox, y1: oy, x2: ox + Math.cos(r) * L, y2: oy - Math.sin(r) * L, stroke: '#ff3b1f', 'stroke-dasharray': '3 4' }));
+          const d = Math.abs(ang - target);
+          const score = Math.round(clamp(100 - d * 6, 0, 100));
+          return { score, note: `You set <b>${ang.toFixed(1)}°</b> &nbsp; Off by <b>${d.toFixed(1)}°</b>` };
+        };
+      }
+    }
+  };
+
+  // ---------- helpers ----------
+  function svgEl(tag, attrs = {}) { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
+  function hsbToRgb({ h, s, b }) {
+    s /= 100; b /= 100;
+    const k = n => (n + h / 60) % 6, f = n => b * (1 - s * Math.max(0, Math.min(k(n), 4 - k(n), 1)));
+    return [f(5) * 255, f(3) * 255, f(1) * 255];
+  }
+  function hsb(c) { const [r, g, b] = hsbToRgb(c).map(Math.round); return `rgb(${r},${g},${b})`; }
+  function hsbToLab(c) {
+    let [r, g, b] = hsbToRgb(c).map(v => { v /= 255; return v > 0.04045 ? ((v + 0.055) / 1.055) ** 2.4 : v / 12.92; });
+    let x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047, y = r * 0.2126 + g * 0.7152 + b * 0.0722, z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
+    const f = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
+    x = f(x); y = f(y); z = f(z);
+    return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+  }
+  function deltaE(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]); }
+  function centroid(p) {
+    let A = 0, cx = 0, cy = 0;
+    for (let i = 0; i < p.length; i++) { const [x0, y0] = p[i], [x1, y1] = p[(i + 1) % p.length]; const c = x0 * y1 - x1 * y0; A += c; cx += (x0 + x1) * c; cy += (y0 + y1) * c; }
+    A /= 2; return [cx / (6 * A), cy / (6 * A)];
+  }
+
+  // ---------- screens ----------
+  function menu() {
+    $mode.textContent = 'Select a test'; $round.textContent = '';
+    $main.innerHTML = '';
+    const t = el('div', 'title', 'How good is your eye? &nbsp;<span class="jp">デザイナーの目を試す4つのテスト</span>');
+    const grid = el('div', 'modes');
+    Object.entries(MODES).forEach(([key, m], i) => {
+      const best = store.get(key);
+      const card = el('div', 'mode', `
+        <div class="num">0${i + 1}</div>
+        <div class="glyph">${m.glyph}</div>
+        <div class="name">${m.name}</div>
+        <div class="jp">${m.jp}</div>
+        <div class="best">${best ? 'Best ' + best : '—'}</div>`);
+      card.onclick = () => play(key);
+      grid.appendChild(card);
+    });
+    $main.append(t, grid);
+  }
+
+  function play(key) {
+    const m = MODES[key];
+    const scores = [];
+    $mode.textContent = m.name;
+    const round = () => {
+      const n = scores.length;
+      $round.textContent = `${n + 1} / ${ROUNDS}`;
+      $main.innerHTML = '';
+      const bar = el('div', 'bar');
+      const task = el('div', 'task');
+      const taskTxt = el('div', '', m.task);
+      task.append(taskTxt, el('div', 'jp', m.jp));
+      const dots = el('div', 'dots');
+      for (let i = 0; i < ROUNDS; i++) dots.appendChild(el('i', i < n ? 'on' : ''));
+      bar.append(task, dots);
+      const stage = el('div', 'stage');
+      const extra = el('div');
+      const controls = el('div', 'controls');
+      const result = el('div', 'result', '&nbsp;');
+      const btn = el('button', 'primary', 'Submit');
+      controls.append(result, btn);
+      $main.append(bar, stage, extra, controls);
+
+      const ctx = { locked: false, ready(ok) { btn.disabled = !ok; btn.style.opacity = ok ? 1 : .3; } };
+      const judge = m.setup(stage, ctx, extra, taskTxt);
+      let done = false;
+      const go = () => {
+        if (btn.disabled) return;
+        if (!done) {
+          done = true; ctx.locked = true;
+          const r = judge();
+          scores.push(r.score);
+          dots.children[n].classList.add('on');
+          result.innerHTML = `Score <b>${r.score}</b> &nbsp; ${r.note}`;
+          btn.textContent = scores.length < ROUNDS ? 'Next' : 'Result';
+        } else {
+          document.removeEventListener('keydown', onKey);
+          scores.length < ROUNDS ? round() : finish(key, scores);
+        }
+      };
+      const onKey = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } if (e.key === 'Escape') { document.removeEventListener('keydown', onKey); menu(); } };
+      document.addEventListener('keydown', onKey);
+      btn.onclick = go;
+      currentCleanup = () => document.removeEventListener('keydown', onKey);
+    };
+    round();
+  }
+
+  let currentCleanup = null;
+
+  function finish(key, scores) {
+    const m = MODES[key];
+    const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
+    const prev = store.get(key);
+    if (avg > prev) store.set(key, avg);
+    const rank = avg >= 95 ? 'Pixel perfect' : avg >= 85 ? 'Art director' : avg >= 70 ? 'Senior designer' : avg >= 50 ? 'Junior designer' : 'Intern';
+    const rankJp = { 'Pixel perfect': '完璧な目', 'Art director': 'アートディレクター級', 'Senior designer': 'シニアデザイナー級', 'Junior designer': 'ジュニアデザイナー級', 'Intern': 'インターン' }[rank];
+    $round.textContent = '';
+    $main.innerHTML = '';
+    const f = el('div', 'final');
+    f.innerHTML = `
+      <div class="jp">${m.name} — Result</div>
+      <div class="score">${avg}</div>
+      <div>${rank} &nbsp;<span class="jp">${rankJp}</span>${avg > prev ? ' &nbsp;<span style="color:var(--accent)">New best</span>' : ''}</div>
+      <div class="rows">${scores.map((s, i) => `<div class="row"><span>Round ${i + 1}</span><b>${s}</b></div>`).join('')}</div>`;
+    const ctr = el('div', 'controls');
+    const again = el('button', 'primary', 'Play again'); again.onclick = () => play(key);
+    const back = el('button', '', 'Menu'); back.onclick = menu;
+    const g = el('div'); g.style.display = 'flex'; g.style.gap = '10px'; g.append(back, again);
+    ctr.append(el('div', 'result', 'Best ' + Math.max(avg, prev)), g);
+    f.appendChild(ctr);
+    $main.appendChild(f);
+  }
+
+  document.getElementById('home').onclick = () => { if (currentCleanup) currentCleanup(); menu(); };
+  (document.fonts ? document.fonts.ready : Promise.resolve()).then(menu);
+})();
+</script>
+</body>
+</html>
