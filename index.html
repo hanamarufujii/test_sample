@@ -3,111 +3,113 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Designer's Eye</title>
+<title>Design Puzzle</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #000;
+    --tile: #141414;
+    --tile-hover: #1d1d1d;
     --fg: #f2f2f2;
     --dim: #6b6b6b;
     --line: #262626;
     --accent: #ff3b1f;
+    --font: "Futura", "Futura PT", "Jost", "Century Gothic", sans-serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { height: 100%; }
   body {
     background: var(--bg);
     color: var(--fg);
-    font-family: "Futura", "Futura PT", "Jost", "Century Gothic", sans-serif;
-    font-weight: 400;
+    font-family: var(--font);
     font-size: 11px;
     letter-spacing: 0.14em;
     text-transform: uppercase;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
     user-select: none;
+    -webkit-user-select: none;
   }
   button {
     font: inherit; letter-spacing: inherit; text-transform: inherit;
     color: var(--fg); background: none; border: 1px solid var(--line);
-    padding: 10px 18px; cursor: pointer; transition: border-color .2s, color .2s;
+    padding: 10px 18px; cursor: pointer; transition: border-color .2s, opacity .2s;
   }
   button:hover { border-color: var(--fg); }
   button.primary { border-color: var(--fg); }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 32px 16px 48px; min-height: 100%; display: flex; flex-direction: column; }
-  header { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+  button:disabled { opacity: .3; cursor: default; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 28px 16px 40px; min-height: 100%; display: flex; flex-direction: column; }
+  header { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
   header .logo { font-weight: 500; cursor: pointer; }
   header .logo span { color: var(--accent); }
-  .meta { color: var(--dim); display: flex; gap: 20px; }
-  main { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 40px 0; }
+  .meta { color: var(--dim); display: flex; gap: 18px; }
+  main { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 28px 0; }
   footer { color: var(--dim); font-size: 9px; border-top: 1px solid var(--line); padding-top: 14px; display: flex; justify-content: space-between; }
-  .jp { text-transform: none; letter-spacing: 0.08em; color: var(--dim); font-size: 10px; }
+  .jp { text-transform: none; letter-spacing: 0.06em; color: var(--dim); font-size: 10px; }
 
-  /* menu */
-  .title { font-size: 11px; color: var(--dim); margin-bottom: 28px; }
-  .modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
-  .mode { border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 22px 18px 18px; cursor: pointer; display: flex; flex-direction: column; gap: 10px; min-height: 170px; transition: background .2s; }
-  .mode:hover { background: #0d0d0d; }
-  .mode .num { color: var(--dim); }
-  .mode .name { font-weight: 500; }
-  .mode .best { margin-top: auto; color: var(--dim); font-size: 9px; }
-  .mode .glyph { height: 40px; display: flex; align-items: center; }
+  /* ---------- menu ---------- */
+  .hero {
+    position: relative; border-radius: 18px; overflow: hidden; background: #e4e4e2; color: #111;
+    aspect-ratio: 16 / 10; display: flex; flex-direction: column; justify-content: flex-end; padding: 22px;
+  }
+  .hero svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+  .hero .copy { position: relative; display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; }
+  .hero h1 { font-weight: 500; font-size: 13px; letter-spacing: .2em; }
+  .hero .copy .jp { color: #555; margin-top: 4px; }
+  .hero button { border: 0; background: #111; color: #f2f2f2; border-radius: 999px; padding: 10px 20px; white-space: nowrap; }
+  .hero button:hover { background: var(--accent); }
+  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
+  .tile {
+    background: var(--tile); border-radius: 14px; aspect-ratio: 1; cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    position: relative; transition: background .2s; padding: 8px; text-align: center;
+  }
+  .tile:hover { background: var(--tile-hover); }
+  .tile svg { width: 34px; height: 34px; overflow: visible; }
+  .tile .lbl { font-size: 10px; font-weight: 500; }
+  .tile .jp { font-size: 9px; }
+  .tile .best { position: absolute; top: 9px; right: 11px; font-size: 8px; color: var(--dim); letter-spacing: .08em; }
 
-  /* stage */
-  .bar { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; }
+  /* ---------- play ---------- */
+  .bar { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
   .bar .task { display: flex; flex-direction: column; gap: 6px; }
-  .stage { position: relative; border: 1px solid var(--line); height: 360px; overflow: hidden; touch-action: none; }
-  .controls { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; gap: 12px; flex-wrap: wrap; }
-  .result { color: var(--dim); min-height: 1em; }
-  .result b { color: var(--fg); font-weight: 500; }
-  .dots { display: flex; gap: 6px; }
+  .dots { display: flex; gap: 6px; padding-top: 3px; }
   .dots i { width: 6px; height: 6px; border: 1px solid var(--dim); border-radius: 50%; display: block; }
   .dots i.on { background: var(--fg); border-color: var(--fg); }
+  .stage { display: block; width: 100%; height: auto; border: 1px solid var(--line); border-radius: 14px; background: #050505; touch-action: none; }
+  .stage text { text-transform: none; letter-spacing: 0; font-family: var(--font); }
+  .stage .drag { cursor: grab; }
+  .stage .drag:active { cursor: grabbing; }
+  .stage .click { cursor: pointer; }
+  .extra:empty { display: none; }
+  .extra { margin-top: 16px; }
+  .controls { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+  .result { color: var(--dim); line-height: 1.7; }
+  .result b { color: var(--fg); font-weight: 500; }
+  .slider { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; color: var(--dim); }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 18px; background: transparent; cursor: pointer; }
+  input[type=range]::-webkit-slider-runnable-track { height: 1px; background: #3a3a3a; }
+  input[type=range]::-moz-range-track { height: 1px; background: #3a3a3a; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: var(--fg); margin-top: -6px; }
+  input[type=range]::-moz-range-thumb { width: 12px; height: 12px; border-radius: 50%; background: var(--fg); border: 0; }
 
-  /* kern */
-  .kern-word { position: absolute; top: 50%; left: 0; width: 100%; height: 0; }
-  .kern-word span {
-    position: absolute; top: 0; transform: translateY(-50%);
-    font-size: 120px; font-weight: 500; letter-spacing: 0; line-height: 1;
-    cursor: ew-resize; color: var(--fg);
-  }
-  .kern-word span.fixed { cursor: default; color: var(--fg); }
-  .kern-word span.ghost { color: transparent; -webkit-text-stroke: 1px var(--accent); pointer-events: none; }
-
-  /* color */
-  .color-split { display: grid; grid-template-columns: 1fr 1fr; height: 100%; }
-  .color-split div { position: relative; }
-  .color-split label { position: absolute; left: 14px; bottom: 12px; font-size: 9px; mix-blend-mode: difference; color: #fff; }
-  .sliders { display: grid; gap: 14px; margin-top: 18px; }
-  .slider { display: grid; grid-template-columns: 24px 1fr 40px; align-items: center; gap: 14px; color: var(--dim); }
-  .slider span:last-child { text-align: right; color: var(--fg); }
-  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 14px; background: transparent; cursor: pointer; }
-  input[type=range]::-webkit-slider-runnable-track { height: 1px; background: var(--line); }
-  input[type=range]::-moz-range-track { height: 1px; background: var(--line); }
-  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 10px; height: 10px; border-radius: 50%; background: var(--fg); margin-top: -5px; }
-  input[type=range]::-moz-range-thumb { width: 10px; height: 10px; border-radius: 50%; background: var(--fg); border: 0; }
-
-  /* center / angle */
-  .shape { position: absolute; border: 1px solid var(--fg); }
-  .mark { position: absolute; width: 0; height: 0; }
-  .mark::before, .mark::after { content: ""; position: absolute; background: var(--fg); }
-  .mark::before { width: 15px; height: 1px; left: -7px; top: 0; }
-  .mark::after { width: 1px; height: 15px; left: 0; top: -7px; }
-  .mark.truth::before, .mark.truth::after { background: var(--accent); }
-  svg { position: absolute; inset: 0; width: 100%; height: 100%; }
-
-  /* end */
-  .final { text-align: left; display: flex; flex-direction: column; gap: 22px; }
+  /* ---------- result ---------- */
+  .final { display: flex; flex-direction: column; gap: 20px; }
   .final .score { font-size: 96px; font-weight: 300; letter-spacing: 0; line-height: 1; }
   .final .rows { border-top: 1px solid var(--line); }
   .final .row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--line); color: var(--dim); }
   .final .row b { color: var(--fg); font-weight: 400; }
 
-  @media (max-width: 600px) {
-    .stage { height: 280px; }
-    .kern-word span { font-size: 72px; }
+  @media (max-width: 560px) {
+    .tiles { gap: 8px; }
+    .tile { border-radius: 12px; gap: 6px; }
+    .tile svg { width: 26px; height: 26px; }
+    .tile .lbl { font-size: 8px; letter-spacing: .1em; }
+    .tile .jp { font-size: 8px; }
+    .tile .best { display: none; }
+    .hero { aspect-ratio: 4 / 3; padding: 16px; }
     .final .score { font-size: 64px; }
     .meta .hide-sm { display: none; }
   }
@@ -116,310 +118,524 @@
 <body>
 <div class="wrap">
   <header>
-    <div class="logo" id="home">Designer's Eye<span>.</span></div>
-    <div class="meta"><span class="hide-sm" id="modeLabel">Select a test</span><span id="roundLabel"></span></div>
+    <div class="logo" id="home">Design Puzzle<span>.</span></div>
+    <div class="meta"><span class="hide-sm" id="modeLabel"></span><span id="roundLabel"></span></div>
   </header>
   <main id="main"></main>
-  <footer><span>A game for graphic designers</span><span>Trust your eye</span></footer>
+  <footer><span>A puzzle for graphic designers</span><span>Enter = OK &nbsp; Esc = Menu</span></footer>
 </div>
 
 <script>
 (() => {
-  const ROUNDS = 5;
+  const NS = 'http://www.w3.org/2000/svg';
+  const W = 600, H = 400;
+  const ROUNDS = 3;
+  const ACCENT = '#ff3b1f', FG = '#f2f2f2', DIM = '#6b6b6b';
+  const PHI = (1 + Math.sqrt(5)) / 2, SILVER = Math.SQRT2;
+
   const $main = document.getElementById('main');
   const $mode = document.getElementById('modeLabel');
   const $round = document.getElementById('roundLabel');
+
   const rand = (a, b) => a + Math.random() * (b - a);
   const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
   const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const shuffle = arr => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+  const S = (tag, attrs = {}, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); if (parent) parent.appendChild(e); return e; };
+  const label = (parent, x, y, text, fill = DIM, size = 10, anchor = 'start') => { const t = S('text', { x, y, fill, 'font-size': size, 'text-anchor': anchor }, parent); t.textContent = text; return t; };
 
   const store = {
-    get(k) { try { return Number(localStorage.getItem('de_' + k)) || 0; } catch { return 0; } },
-    set(k, v) { try { localStorage.setItem('de_' + k, String(v)); } catch {} }
+    get(k) { try { return Number(localStorage.getItem('dp_' + k)) || 0; } catch { return 0; } },
+    set(k, v) { try { localStorage.setItem('dp_' + k, String(v)); } catch {} }
   };
 
-  // ---------- MODES ----------
-  const MODES = {
-    kern: {
-      name: 'Kerning', jp: '文字の間隔を視覚的に均等に整える',
-      task: 'Drag letters to balance the spacing', glyph: '<span style="font-size:28px;font-weight:500;letter-spacing:.02em">A&thinsp;V&thinsp;A</span>',
-      words: ['TYPE', 'AVATAR', 'WAVY', 'LOVE', 'FUTURA', 'KERN', 'VOLT', 'ATLAS', 'TOWAY', 'GLYPH', 'MOTIF', 'LAYOUT'],
-      setup(stage, ctx) {
-        const word = pick(this.words);
-        const box = el('div', 'kern-word');
-        stage.appendChild(box);
-        const spans = [...word].map(ch => { const s = el('span', '', ch); box.appendChild(s); return s; });
-        // Reference = the font's own kerned spacing, measured from the whole word
-        const widths = spans.map(s => s.getBoundingClientRect().width);
-        const ref = el('span', '', word); ref.style.visibility = 'hidden'; box.appendChild(ref);
-        const node = ref.firstChild, range = document.createRange();
-        const r0 = ref.getBoundingClientRect();
-        const rel = [...word].map((_, i) => { range.setStart(node, i); range.setEnd(node, i + 1); return range.getBoundingClientRect().left - r0.left; });
-        const startX = (stage.clientWidth - r0.width) / 2;
-        ref.remove();
-        const ideal = rel.map(p => startX + p);
-        const cur = ideal.slice();
-        const maxOff = Math.max(14, widths[0] * 0.35);
-        for (let i = 1; i < spans.length - 1; i++) cur[i] = ideal[i] + rand(-maxOff, maxOff);
-        // last letter also moves (relative), first stays as anchor
-        cur[spans.length - 1] = ideal[spans.length - 1] + rand(-maxOff, maxOff);
-        const draw = () => spans.forEach((s, i) => s.style.left = cur[i] + 'px');
-        spans[0].classList.add('fixed');
-        draw();
-        spans.forEach((s, i) => {
-          if (i === 0) return;
-          s.addEventListener('pointerdown', e => {
-            if (ctx.locked) return;
-            s.setPointerCapture(e.pointerId);
-            const sx = e.clientX, start = cur[i];
-            const lo = i > 0 ? cur[i - 1] + widths[i - 1] * 0.3 : -Infinity;
-            const hi = i < spans.length - 1 ? cur[i + 1] - widths[i] * 0.3 : Infinity;
-            const move = ev => { cur[i] = clamp(start + ev.clientX - sx, lo, hi); draw(); };
-            const up = () => { s.removeEventListener('pointermove', move); s.removeEventListener('pointerup', up); };
-            s.addEventListener('pointermove', move); s.addEventListener('pointerup', up);
-          });
-        });
-        return () => {
-          let err = 0;
-          for (let i = 1; i < spans.length; i++) err += Math.abs((cur[i] - cur[i - 1]) - (ideal[i] - ideal[i - 1]));
-          err /= spans.length - 1;
-          const score = Math.round(clamp(100 - err * 3.2, 0, 100));
-          spans.forEach((s, i) => { const g = el('span', 'ghost', s.textContent); g.style.left = ideal[i] + 'px'; box.appendChild(g); });
-          return { score, note: `Avg error <b>${err.toFixed(1)}px</b>` };
-        };
-      }
-    },
-
-    color: {
-      name: 'Color', jp: 'HSBスライダーで色を再現する',
-      task: 'Match the target color', glyph: '<span style="display:flex;gap:4px"><i style="width:18px;height:18px;background:#ff3b1f;display:block"></i><i style="width:18px;height:18px;background:#e0482c;display:block"></i></span>',
-      setup(stage, ctx, extra) {
-        const target = { h: rand(0, 360), s: rand(25, 100), b: rand(25, 100) };
-        const v = { h: 180, s: 50, b: 50 };
-        const split = el('div', 'color-split');
-        const t = el('div', '', '<label>Target</label>'), y = el('div', '', '<label>You</label>');
-        split.append(t, y); stage.appendChild(split);
-        t.style.background = hsb(target);
-        const paint = () => y.style.background = hsb(v);
-        paint();
-        const sl = el('div', 'sliders');
-        const outs = {};
-        [['h', 'H', 360], ['s', 'S', 100], ['b', 'B', 100]].forEach(([k, label, max]) => {
-          const row = el('div', 'slider');
-          const inp = el('input'); inp.type = 'range'; inp.min = 0; inp.max = max; inp.value = v[k];
-          const out = el('span', '', v[k]); outs[k] = out;
-          inp.addEventListener('input', () => { if (ctx.locked) return; v[k] = +inp.value; out.textContent = inp.value; paint(); });
-          row.append(el('span', '', label), inp, out); sl.appendChild(row);
-        });
-        extra.appendChild(sl);
-        return () => {
-          const d = deltaE(hsbToLab(target), hsbToLab(v));
-          const score = Math.round(clamp(100 - d * 2.2, 0, 100));
-          return { score, note: `ΔE <b>${d.toFixed(1)}</b> &nbsp; Target H${Math.round(target.h)} S${Math.round(target.s)} B${Math.round(target.b)}` };
-        };
-      }
-    },
-
-    center: {
-      name: 'Center', jp: '図形の中心（重心）を見抜く',
-      task: 'Click the center of the shape', glyph: '<svg viewBox="0 0 40 40" style="position:static;width:40px;height:40px"><polygon points="4,36 36,36 20,4" fill="none" stroke="#f2f2f2"/><circle cx="20" cy="25.3" r="1.6" fill="#ff3b1f"/></svg>',
-      setup(stage, ctx) {
-        const W = stage.clientWidth, H = stage.clientHeight;
-        const svg = svgEl('svg');
-        stage.appendChild(svg);
-        const kind = pick(['rect', 'tri', 'tri', 'poly']);
-        let pts;
-        const cx = rand(W * 0.35, W * 0.65), cy = rand(H * 0.4, H * 0.6), r = Math.min(W, H) * rand(0.28, 0.4);
-        if (kind === 'rect') {
-          const w = rand(r * 0.8, r * 1.8), h = rand(r * 0.6, r * 1.4);
-          pts = [[cx - w / 2, cy - h / 2], [cx + w / 2, cy - h / 2], [cx + w / 2, cy + h / 2], [cx - w / 2, cy + h / 2]];
-        } else {
-          const n = kind === 'tri' ? 3 : Math.floor(rand(4, 7));
-          const a0 = rand(0, Math.PI * 2);
-          pts = Array.from({ length: n }, (_, i) => {
-            const a = a0 + (i / n) * Math.PI * 2 + rand(-0.35, 0.35);
-            const rr = r * rand(0.6, 1.1);
-            return [cx + Math.cos(a) * rr, cy + Math.sin(a) * rr];
-          });
-        }
-        const poly = svgEl('polygon', { points: pts.map(p => p.join(',')).join(' '), fill: 'none', stroke: '#f2f2f2', 'stroke-width': 1 });
-        svg.appendChild(poly);
-        const c = centroid(pts);
-        let guess = null, mark = null;
-        stage.style.cursor = 'crosshair';
-        stage.onpointerdown = e => {
-          if (ctx.locked) return;
-          const rc = stage.getBoundingClientRect();
-          guess = [e.clientX - rc.left, e.clientY - rc.top];
-          if (!mark) { mark = el('div', 'mark'); stage.appendChild(mark); }
-          mark.style.left = guess[0] + 'px'; mark.style.top = guess[1] + 'px';
-          ctx.ready(true);
-        };
-        ctx.ready(false);
-        return () => {
-          stage.onpointerdown = null; stage.style.cursor = '';
-          const t = el('div', 'mark truth'); t.style.left = c[0] + 'px'; t.style.top = c[1] + 'px'; stage.appendChild(t);
-          const d = Math.hypot(guess[0] - c[0], guess[1] - c[1]);
-          const score = Math.round(clamp(100 - d * 2.5, 0, 100));
-          return { score, note: `Off by <b>${d.toFixed(1)}px</b>` };
-        };
-      }
-    },
-
-    angle: {
-      name: 'Angle', jp: '指定された角度を目測で作る',
-      task: '', glyph: '<svg viewBox="0 0 40 40" style="position:static;width:40px;height:40px"><line x1="6" y1="34" x2="36" y2="34" stroke="#6b6b6b"/><line x1="6" y1="34" x2="30" y2="10" stroke="#f2f2f2"/></svg>',
-      setup(stage, ctx, extra, bar) {
-        const target = Math.round(rand(5, 175));
-        bar.textContent = `Set the line to ${target}°`;
-        const W = stage.clientWidth, H = stage.clientHeight;
-        const ox = W / 2, oy = H * 0.78, L = Math.min(W * 0.42, H * 0.65);
-        const svg = svgEl('svg'); stage.appendChild(svg);
-        svg.appendChild(svgEl('line', { x1: ox - L, y1: oy, x2: ox + L, y2: oy, stroke: '#262626' }));
-        svg.appendChild(svgEl('circle', { cx: ox, cy: oy, r: 2.5, fill: '#f2f2f2' }));
-        const line = svgEl('line', { x1: ox, y1: oy, stroke: '#f2f2f2', 'stroke-width': 1 });
-        svg.appendChild(line);
-        let ang = rand(0, 180);
-        const draw = () => { const r = ang * Math.PI / 180; line.setAttribute('x2', ox + Math.cos(r) * L); line.setAttribute('y2', oy - Math.sin(r) * L); };
-        draw();
-        stage.style.cursor = 'grab';
-        const set = e => { const rc = stage.getBoundingClientRect(); const dx = e.clientX - rc.left - ox, dy = oy - (e.clientY - rc.top); ang = clamp(Math.atan2(dy, dx) * 180 / Math.PI, 0, 180); if (dy < 0) ang = dx > 0 ? 0 : 180; draw(); };
-        stage.onpointerdown = e => {
-          if (ctx.locked) return;
-          stage.setPointerCapture(e.pointerId); set(e);
-          stage.onpointermove = set;
-          stage.onpointerup = () => { stage.onpointermove = null; };
-        };
-        return () => {
-          stage.onpointerdown = stage.onpointermove = null; stage.style.cursor = '';
-          const r = target * Math.PI / 180;
-          svg.appendChild(svgEl('line', { x1: ox, y1: oy, x2: ox + Math.cos(r) * L, y2: oy - Math.sin(r) * L, stroke: '#ff3b1f', 'stroke-dasharray': '3 4' }));
-          const d = Math.abs(ang - target);
-          const score = Math.round(clamp(100 - d * 6, 0, 100));
-          return { score, note: `You set <b>${ang.toFixed(1)}°</b> &nbsp; Off by <b>${d.toFixed(1)}°</b>` };
-        };
-      }
-    }
-  };
-
-  // ---------- helpers ----------
-  function svgEl(tag, attrs = {}) { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; }
-  function hsbToRgb({ h, s, b }) {
-    s /= 100; b /= 100;
-    const k = n => (n + h / 60) % 6, f = n => b * (1 - s * Math.max(0, Math.min(k(n), 4 - k(n), 1)));
-    return [f(5) * 255, f(3) * 255, f(1) * 255];
+  function svgPoint(svg, e) {
+    const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY;
+    return p.matrixTransform(svg.getScreenCTM().inverse());
   }
-  function hsb(c) { const [r, g, b] = hsbToRgb(c).map(Math.round); return `rgb(${r},${g},${b})`; }
-  function hsbToLab(c) {
-    let [r, g, b] = hsbToRgb(c).map(v => { v /= 255; return v > 0.04045 ? ((v + 0.055) / 1.055) ** 2.4 : v / 12.92; });
+  // Drag helper: move(dx, dy, point) is called in SVG units
+  function draggable(node, svg, ctx, { start, move, end }) {
+    node.addEventListener('pointerdown', e => {
+      if (ctx.locked) return;
+      e.preventDefault();
+      const p0 = svgPoint(svg, e);
+      start && start(p0);
+      const mv = ev => { const p = svgPoint(svg, ev); move(p.x - p0.x, p.y - p0.y, p); };
+      const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); end && end(); };
+      window.addEventListener('pointermove', mv);
+      window.addEventListener('pointerup', up);
+    });
+  }
+
+  // ---------- simple shapes ----------
+  function shapeAttrs(s) {
+    const { type, size: a, x, y } = s;
+    if (type === 'circle') return ['circle', { cx: x, cy: y, r: a / 2 }];
+    if (type === 'square') return ['rect', { x: x - a / 2, y: y - a / 2, width: a, height: a }];
+    const h = a * Math.sqrt(3) / 2;
+    return ['polygon', { points: `${x},${y - h / 2} ${x + a / 2},${y + h / 2} ${x - a / 2},${y + h / 2}` }];
+  }
+  function drawShape(parent, s, style) { const [tag, at] = shapeAttrs(s); return S(tag, { ...at, ...style }, parent); }
+  function pathOnCanvas(c, s, k) {
+    const { type, size: a } = s, x = s.x * k, y = s.y * k, A = a * k;
+    c.beginPath();
+    if (type === 'circle') c.arc(x, y, A / 2, 0, Math.PI * 2);
+    else if (type === 'square') c.rect(x - A / 2, y - A / 2, A, A);
+    else { const h = A * Math.sqrt(3) / 2; c.moveTo(x, y - h / 2); c.lineTo(x + A / 2, y + h / 2); c.lineTo(x - A / 2, y + h / 2); c.closePath(); }
+    c.fill();
+  }
+  function iou(shapesA, shapesB) {
+    const k = 0.5, w = W * k, h = H * k;
+    const mask = list => {
+      const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      const c = cv.getContext('2d'); c.fillStyle = '#000';
+      list.forEach(s => pathOnCanvas(c, s, k));
+      return c.getImageData(0, 0, w, h).data;
+    };
+    const a = mask(shapesA), b = mask(shapesB);
+    let inter = 0, uni = 0;
+    for (let i = 3; i < a.length; i += 4) { const A = a[i] > 127, B = b[i] > 127; if (A && B) inter++; if (A || B) uni++; }
+    return uni ? inter / uni : 0;
+  }
+
+  // ---------- color ----------
+  const tint = (rgb, t) => rgb.map(v => Math.round(255 - (255 - v) * t));
+  const rgbStr = c => `rgb(${c.map(Math.round).join(',')})`;
+  function rgbToLab(rgb) {
+    let [r, g, b] = rgb.map(v => { v /= 255; return v > 0.04045 ? ((v + 0.055) / 1.055) ** 2.4 : v / 12.92; });
     let x = (r * 0.4124 + g * 0.3576 + b * 0.1805) / 0.95047, y = r * 0.2126 + g * 0.7152 + b * 0.0722, z = (r * 0.0193 + g * 0.1192 + b * 0.9505) / 1.08883;
     const f = t => t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116;
     x = f(x); y = f(y); z = f(z);
     return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
   }
-  function deltaE(a, b) { return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]); }
-  function centroid(p) {
-    let A = 0, cx = 0, cy = 0;
-    for (let i = 0; i < p.length; i++) { const [x0, y0] = p[i], [x1, y1] = p[(i + 1) % p.length]; const c = x0 * y1 - x1 * y0; A += c; cx += (x0 + x1) * c; cy += (y0 + y1) * c; }
-    A /= 2; return [cx / (6 * A), cy / (6 * A)];
+  const deltaE = (a, b) => { const A = rgbToLab(a), B = rgbToLab(b); return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); };
+  const multiply = films => films.reduce((c, f) => c.map((v, i) => v * f.rgb[i] / 255), [255, 255, 255]);
+
+  const C100 = [0, 160, 233], M100 = [228, 0, 127], Y100 = [255, 241, 0];
+  const FILMS = [
+    { id: 'C100', fam: 'C', rgb: C100 }, { id: 'M100', fam: 'M', rgb: M100 }, { id: 'Y100', fam: 'Y', rgb: Y100 },
+    { id: 'C50', fam: 'C', rgb: tint(C100, .5) }, { id: 'M50', fam: 'M', rgb: tint(M100, .5) }, { id: 'Y50', fam: 'Y', rgb: tint(Y100, .5) },
+    { id: 'K30', fam: 'K', rgb: [190, 190, 190] }
+  ];
+
+  // ================= PUZZLES =================
+  const MODES = {};
+
+  // 01 — Overlap shapes
+  const COMPS2 = [
+    [['square', 110, 0, 30], ['tri', 140, 0, -78]],
+    [['circle', 120, 0, 45], ['circle', 80, 0, -50]],
+    [['circle', 100, 0, -30], ['tri', 90, 0, 45]],
+    [['square', 100, -38, 0], ['circle', 100, 38, 0]],
+    [['tri', 120, -30, 10], ['tri', 120, 30, 10]]
+  ];
+  const COMPS3 = [
+    [['square', 110, 0, 40], ['tri', 140, 0, -68], ['circle', 56, 80, -90]],
+    [['circle', 120, 0, 55], ['circle', 80, 0, -40], ['square', 50, 0, -95]],
+    [['tri', 150, 0, -20], ['square', 40, 0, 60], ['circle', 40, 0, -85]],
+    [['square', 80, -50, 20], ['square', 80, 50, 20], ['circle', 90, 0, -20]]
+  ];
+  MODES.shape = {
+    name: 'Overlap', jp: '図形をかさねる',
+    task: 'Overlap the shapes to match the silhouette', taskJp: '図形を重ねて、グレーのシルエットと同じ形にする',
+    icon: g => { S('rect', { x: 2, y: 12, width: 18, height: 18 }, g); S('circle', { cx: 22, cy: 14, r: 10 }, g); },
+    setup(svg, level, ctx) {
+      const comp = level < 2 ? pick(COMPS2) : pick(COMPS3);
+      const cx = 190, cy = 200;
+      const target = comp.map(([type, size, x, y]) => ({ type, size, x: cx + x, y: cy + y }));
+      const tg = S('g', {}, svg);
+      target.forEach(s => drawShape(tg, s, { fill: '#2c2c2c' }));
+      label(svg, 24, 30, 'TARGET');
+      S('line', { x1: 390, y1: 30, x2: 390, y2: 370, stroke: '#1c1c1c' }, svg);
+      const pieces = shuffle(target).map((s, i, arr) => ({ ...s, x: 495, y: 200 + (i - (arr.length - 1) / 2) * 125 }));
+      const layer = S('g', {}, svg);
+      pieces.forEach(p => {
+        let node = drawShape(layer, p, { fill: 'rgba(242,242,242,.14)', stroke: FG, 'stroke-width': 1, class: 'drag' });
+        let ox, oy;
+        draggable(node, svg, ctx, {
+          start() { ox = p.x; oy = p.y; layer.appendChild(node); },
+          move(dx, dy) {
+            p.x = clamp(ox + dx, 0, W); p.y = clamp(oy + dy, 0, H);
+            const [, at] = shapeAttrs(p); for (const k in at) node.setAttribute(k, at[k]);
+          }
+        });
+      });
+      return () => {
+        target.forEach(s => drawShape(svg, s, { fill: 'none', stroke: ACCENT, 'stroke-dasharray': '4 4' }));
+        const v = iou(target, pieces);
+        return { score: Math.round(clamp((v - 0.4) / 0.6 * 100, 0, 100)), note: `Overlap match <b>${(v * 100).toFixed(1)}%</b>` };
+      };
+    }
+  };
+
+  // 02 — Overlap colors (multiply)
+  MODES.color = {
+    name: 'Mix', jp: '色をかさねる',
+    task: 'Stack color films to match the target', taskJp: 'カラーフィルムを重ねて（乗算）、同じ色をつくる',
+    icon: g => { S('circle', { cx: 11, cy: 13, r: 9 }, g); S('circle', { cx: 23, cy: 13, r: 9 }, g); S('circle', { cx: 17, cy: 23, r: 9 }, g); },
+    setup(svg, level, ctx) {
+      const n = level === 0 ? 2 : level === 1 ? pick([2, 3]) : 3;
+      const fams = shuffle(['C', 'M', 'Y', 'K']).slice(0, n);
+      const answer = fams.map(f => pick(FILMS.filter(x => x.fam === f)));
+      const tColor = multiply(answer);
+      label(svg, 40, 22, 'TARGET'); label(svg, 310, 22, 'YOU');
+      S('rect', { x: 40, y: 30, width: 250, height: 240, fill: rgbStr(tColor) }, svg);
+      const you = S('rect', { x: 310, y: 30, width: 250, height: 240, fill: '#fff' }, svg);
+      const on = new Set();
+      const cw = 60, gap = 16, x0 = (W - (FILMS.length * cw + (FILMS.length - 1) * gap)) / 2;
+      const chips = FILMS.map((f, i) => {
+        const g = S('g', { class: 'click' }, svg);
+        const x = x0 + i * (cw + gap);
+        S('rect', { x, y: 300, width: cw, height: cw, fill: rgbStr(f.rgb) }, g);
+        const ring = S('rect', { x: x - 4, y: 296, width: cw + 8, height: cw + 8, fill: 'none', stroke: FG, 'stroke-width': 1.5, opacity: 0 }, g);
+        const t = label(g, x + cw / 2, 384, f.id, DIM, 10, 'middle');
+        g.addEventListener('pointerdown', () => {
+          if (ctx.locked) return;
+          on.has(f) ? on.delete(f) : on.add(f);
+          ring.setAttribute('opacity', on.has(f) ? 1 : 0);
+          t.setAttribute('fill', on.has(f) ? FG : DIM);
+          you.setAttribute('fill', rgbStr(multiply([...on])));
+        });
+        return { f, x };
+      });
+      return () => {
+        chips.forEach(({ f, x }) => { if (answer.includes(f)) S('rect', { x: x - 8, y: 292, width: cw + 16, height: cw + 16, fill: 'none', stroke: ACCENT, 'stroke-dasharray': '3 3' }, svg); });
+        const d = deltaE(tColor, multiply([...on]));
+        return { score: Math.round(clamp(100 - d * 3, 0, 100)), note: `ΔE <b>${d.toFixed(1)}</b> &nbsp; Answer <b>${answer.map(f => f.id).join(' × ')}</b>` };
+      };
+    }
+  };
+
+  // 03 / 04 — Golden & silver ratio
+  function ratioMode(r, name, jp, rLabel, icon) {
+    return {
+      name, jp, icon,
+      task: '', taskJp: '',
+      setup(svg, level, ctx) {
+        const far = f => { let v; do { v = f(); } while (Math.abs(v - r) / r < 0.15); return v; };
+        const handle = (x, y) => {
+          const g = S('g', { class: 'drag' }, svg);
+          S('circle', { cx: 0, cy: 0, r: 24, fill: 'transparent' }, g);
+          S('rect', { x: -5, y: -5, width: 10, height: 10, fill: FG }, g);
+          g.setAttribute('transform', `translate(${x},${y})`);
+          return g;
+        };
+        let measure, reveal;
+        if (level === 1) {
+          ctx.setTask(`Divide the line at 1 : ${rLabel}`, `線を ${jp}（1 : ${rLabel}）で分割する`);
+          const x1 = 60, x2 = 540, y = 200, L = x2 - x1;
+          S('line', { x1, y1: y, x2, y2: y, stroke: FG }, svg);
+          [x1, x2].forEach(x => S('line', { x1: x, y1: y - 12, x2: x, y2: y + 12, stroke: FG }, svg));
+          let p;
+          do { p = x1 + rand(0.08, 0.92) * L; } while (Math.abs(Math.max(p - x1, x2 - p) / Math.min(p - x1, x2 - p) - r) / r < 0.15);
+          const tick = S('line', { y1: y - 20, y2: y + 20, stroke: FG }, svg);
+          const h = handle(p, y);
+          const draw = () => { tick.setAttribute('x1', p); tick.setAttribute('x2', p); h.setAttribute('transform', `translate(${p},${y})`); };
+          draw();
+          let o; draggable(h, svg, ctx, { start() { o = p; }, move(dx) { p = clamp(o + dx, x1 + 10, x2 - 10); draw(); } });
+          measure = () => Math.max(p - x1, x2 - p) / Math.min(p - x1, x2 - p);
+          reveal = () => [x1 + L / (1 + r), x2 - L / (1 + r)].forEach(x => S('line', { x1: x, y1: y - 30, x2: x, y2: y + 30, stroke: ACCENT, 'stroke-dasharray': '3 3' }, svg));
+        } else if (level === 0) {
+          ctx.setTask(`Make a 1 : ${rLabel} rectangle`, `横長の ${jp}（1 : ${rLabel}）の長方形をつくる`);
+          const x0 = 70, hh = 150, y0 = (H - hh) / 2;
+          let w = far(() => rand(70, 470) / hh) * hh;
+          const rect = S('rect', { x: x0, y: y0, height: hh, fill: 'rgba(242,242,242,.05)', stroke: FG }, svg);
+          const h = handle(0, 0);
+          const draw = () => { rect.setAttribute('width', w); h.setAttribute('transform', `translate(${x0 + w},${y0 + hh / 2})`); };
+          draw();
+          let o; draggable(h, svg, ctx, { start() { o = w; }, move(dx) { w = clamp(o + dx, 40, 500); draw(); } });
+          measure = () => w / hh;
+          reveal = () => S('rect', { x: x0, y: y0, width: hh * r, height: hh, fill: 'none', stroke: ACCENT, 'stroke-dasharray': '4 4' }, svg);
+        } else {
+          ctx.setTask(`Make a 1 : ${rLabel} portrait rectangle`, `縦長の ${jp}（1 : ${rLabel}）の長方形をつくる`);
+          const ww = 140, x0 = (W - ww) / 2, y0 = 25;
+          let hh = far(() => rand(60, 345) / ww) * ww;
+          const rect = S('rect', { x: x0, y: y0, width: ww, fill: 'rgba(242,242,242,.05)', stroke: FG }, svg);
+          const h = handle(0, 0);
+          const draw = () => { rect.setAttribute('height', hh); h.setAttribute('transform', `translate(${x0 + ww / 2},${y0 + hh})`); };
+          draw();
+          let o; draggable(h, svg, ctx, { start() { o = hh; }, move(dx, dy) { hh = clamp(o + dy, 40, 350); draw(); } });
+          measure = () => hh / ww;
+          reveal = () => S('rect', { x: x0, y: y0, width: ww, height: ww * r, fill: 'none', stroke: ACCENT, 'stroke-dasharray': '4 4' }, svg);
+        }
+        return () => {
+          reveal();
+          const u = measure(), err = Math.abs(u - r) / r;
+          return { score: Math.round(clamp(100 - err * 400, 0, 100)), note: `You <b>1 : ${u.toFixed(3)}</b> &nbsp; Target <b>1 : ${r.toFixed(3)}</b>` };
+        };
+      }
+    };
+  }
+  MODES.golden = ratioMode(PHI, 'Golden', '黄金比', '1.618', g => {
+    S('rect', { x: 0, y: 6, width: 34, height: 21 }, g); S('line', { x1: 21, y1: 6, x2: 21, y2: 27 }, g);
+  });
+  MODES.silver = ratioMode(SILVER, 'Silver', '白銀比', '1.414', g => {
+    S('rect', { x: 5, y: 2, width: 24, height: 34 }, g); S('line', { x1: 5, y1: 19, x2: 29, y2: 19 }, g);
+  });
+
+  // 05 — Fibonacci tiling
+  MODES.fib = {
+    name: 'Fibonacci', jp: 'フィボナッチ',
+    task: 'Fill the frame with the Fibonacci squares', taskJp: '1・1・2・3・5・8 の正方形で枠をすき間なく埋める',
+    icon: g => { S('rect', { x: 0, y: 6, width: 21, height: 21 }, g); S('rect', { x: 21, y: 6, width: 13, height: 13 }, g); S('rect', { x: 21, y: 19, width: 8, height: 8 }, g); },
+    setup(svg, level, ctx) {
+      const sizes = [[1, 1, 2, 3], [1, 1, 2, 3, 5], [1, 1, 2, 3, 5, 8]][level];
+      const u = [40, 34, 24][level];
+      // canonical spiral tiling: right, down, left, up …
+      let rx = 0, ry = 0, rw = 1, rh = 1; const canon = [{ x: 0, y: 0, s: 1 }];
+      for (let i = 1; i < sizes.length; i++) {
+        const s = sizes[i], d = (i - 1) % 4;
+        if (d === 0) { canon.push({ x: rx + rw, y: ry, s }); rw += s; }
+        else if (d === 1) { canon.push({ x: rx, y: ry + rh, s }); rh += s; }
+        else if (d === 2) { canon.push({ x: rx - s, y: ry, s }); rx -= s; rw += s; }
+        else { canon.push({ x: rx, y: ry - s, s }); ry -= s; rh += s; }
+      }
+      const bx = 24, by = Math.round((H - rh * u) / 2);
+      S('rect', { x: bx, y: by, width: rw * u, height: rh * u, fill: '#0e0e0e', stroke: DIM, 'stroke-dasharray': '2 3' }, svg);
+      for (let i = 1; i < rw; i++) S('line', { x1: bx + i * u, y1: by, x2: bx + i * u, y2: by + rh * u, stroke: '#161616' }, svg);
+      for (let j = 1; j < rh; j++) S('line', { x1: bx, y1: by + j * u, x2: bx + rw * u, y2: by + j * u, stroke: '#161616' }, svg);
+      label(svg, bx, by - 10, `${rw} × ${rh}`);
+      // shelf-pack the pieces into the tray
+      const tray = { x: 356, y: 12, w: 236 };
+      let cx = tray.x, cy = tray.y, row = 0;
+      const pieces = sizes.slice().sort((a, b) => b - a).map(s => {
+        const px = s * u;
+        if (cx + px > tray.x + tray.w) { cx = tray.x; cy += row + 6; row = 0; }
+        const p = { s, x: cx, y: cy }; cx += px + 6; row = Math.max(row, px); return p;
+      });
+      const layer = S('g', {}, svg);
+      pieces.forEach(p => {
+        const node = S('rect', { x: p.x, y: p.y, width: p.s * u, height: p.s * u, fill: 'rgba(242,242,242,.1)', stroke: FG, class: 'drag' }, layer);
+        const t = label(layer, 0, 0, String(p.s), FG, 10, 'middle'); t.style.pointerEvents = 'none';
+        const draw = () => { node.setAttribute('x', p.x); node.setAttribute('y', p.y); t.setAttribute('x', p.x + p.s * u / 2); t.setAttribute('y', p.y + p.s * u / 2 + 4); };
+        draw();
+        let ox, oy;
+        draggable(node, svg, ctx, {
+          start() { ox = p.x; oy = p.y; layer.appendChild(node); layer.appendChild(t); },
+          move(dx, dy) { p.x = clamp(ox + dx, 0, W - p.s * u); p.y = clamp(oy + dy, 0, H - p.s * u); draw(); },
+          end() { p.x = bx + Math.round((p.x - bx) / u) * u; p.y = by + Math.round((p.y - by) / u) * u; draw(); }
+        });
+      });
+      return () => {
+        const grid = Array.from({ length: rh }, () => new Array(rw).fill(0));
+        pieces.forEach(p => {
+          const gx = Math.round((p.x - bx) / u), gy = Math.round((p.y - by) / u);
+          for (let j = 0; j < p.s; j++) for (let i = 0; i < p.s; i++) { const X = gx + i, Y = gy + j; if (X >= 0 && Y >= 0 && X < rw && Y < rh) grid[Y][X]++; }
+        });
+        const total = rw * rh, ok = grid.flat().filter(v => v === 1).length;
+        canon.forEach(c => S('rect', { x: bx + (c.x - rx) * u, y: by + (c.y - ry) * u, width: c.s * u, height: c.s * u, fill: 'none', stroke: ACCENT, 'stroke-dasharray': '3 3' }, svg));
+        return { score: Math.round(ok / total * 100), note: `Filled <b>${ok} / ${total}</b> cells` };
+      };
+    }
+  };
+
+  // 06 — Layout frame
+  const LAYOUTS = [
+    { n: 3, els: [['photo', 0, 3, 20, 160], ['title', 0, 2, 196, 24], ['text', 0, 2, 236, 100], ['photo', 2, 1, 196, 60]] },
+    { n: 2, els: [['title', 0, 2, 20, 34], ['photo', 1, 1, 74, 220], ['text', 0, 1, 74, 140]] },
+    { n: 4, els: [['photo', 1, 3, 20, 200], ['title', 0, 3, 236, 26], ['text', 0, 2, 278, 62], ['text', 3, 1, 236, 104]] }
+  ];
+  function drawEl(parent, type, w, h) {
+    if (type === 'photo') { S('rect', { width: w, height: h, fill: '#2b2b2b' }, parent); S('line', { x1: 0, y1: 0, x2: w, y2: h, stroke: '#444' }, parent); S('line', { x1: w, y1: 0, x2: 0, y2: h, stroke: '#444' }, parent); }
+    else if (type === 'title') S('rect', { width: w, height: h, fill: FG }, parent);
+    else { S('rect', { width: w, height: h, fill: 'transparent' }, parent); for (let y = 3; y < h; y += 10) S('line', { x1: 0, y1: y, x2: y + 10 >= h ? w * .6 : w, y2: y, stroke: '#8a8a8a', 'stroke-width': 3 }, parent); }
+  }
+  MODES.layout = {
+    name: 'Layout', jp: 'レイアウト',
+    task: 'Place the elements on the grid like the target', taskJp: 'お手本どおりに、要素をグリッドへ配置する',
+    icon: g => { S('rect', { x: 4, y: 0, width: 26, height: 34 }, g); S('line', { x1: 13, y1: 0, x2: 13, y2: 34 }, g); S('line', { x1: 21, y1: 0, x2: 21, y2: 34 }, g); },
+    setup(svg, level, ctx) {
+      const L = LAYOUTS[level];
+      const P = { x: 30, y: 20, w: 280, h: 360 }, m = 20, g = 12;
+      const colW = (P.w - 2 * m - (L.n - 1) * g) / L.n;
+      const els = L.els.map(([type, c0, span, y, h]) => ({ type, w: span * colW + (span - 1) * g, h, tx: P.x + m + c0 * (colW + g), ty: P.y + y }));
+      S('rect', { x: P.x, y: P.y, width: P.w, height: P.h, fill: '#0b0b0b', stroke: '#333' }, svg);
+      for (let i = 0; i < L.n; i++) S('rect', { x: P.x + m + i * (colW + g), y: P.y + m, width: colW, height: P.h - 2 * m, fill: 'rgba(255,59,31,.07)' }, svg);
+      // thumbnail
+      const k = 0.4, T = S('g', { transform: `translate(350,20) scale(${k})` }, svg);
+      S('rect', { width: P.w, height: P.h, fill: '#0b0b0b', stroke: '#555', 'stroke-width': 2 }, T);
+      els.forEach(e => drawEl(S('g', { transform: `translate(${e.tx - P.x},${e.ty - P.y})` }, T), e.type, e.w, e.h));
+      label(svg, 350, 182, 'TARGET');
+      const layer = S('g', {}, svg);
+      els.forEach(e => {
+        const a = rand(0, Math.PI * 2), d = rand(60, 130);
+        e.x = clamp(e.tx + Math.cos(a) * d, 0, W - e.w); e.y = clamp(e.ty + Math.sin(a) * d, 0, H - e.h);
+        const node = S('g', { class: 'drag' }, layer);
+        drawEl(node, e.type, e.w, e.h);
+        const draw = () => node.setAttribute('transform', `translate(${e.x},${e.y})`);
+        draw();
+        let ox, oy;
+        draggable(node, svg, ctx, { start() { ox = e.x; oy = e.y; layer.appendChild(node); }, move(dx, dy) { e.x = clamp(ox + dx, 0, W - e.w); e.y = clamp(oy + dy, 0, H - e.h); draw(); } });
+      });
+      return () => {
+        els.forEach(e => S('rect', { x: e.tx, y: e.ty, width: e.w, height: e.h, fill: 'none', stroke: ACCENT, 'stroke-dasharray': '4 4' }, svg));
+        const err = els.reduce((s, e) => s + Math.hypot(e.x - e.tx, e.y - e.ty), 0) / els.length;
+        return { score: Math.round(clamp(100 - err * 1.8, 0, 100)), note: `Avg offset <b>${err.toFixed(1)}px</b>` };
+      };
+    }
+  };
+
+  // 07 — Type jump ratio
+  MODES.jump = {
+    name: 'Jump', jp: 'ジャンプ率',
+    task: '', taskJp: '',
+    icon: g => { const t = S('text', { x: 0, y: 30, 'font-size': 30, fill: FG, stroke: 'none' }, g); t.textContent = 'A'; const s = S('text', { x: 22, y: 30, 'font-size': 11, fill: FG, stroke: 'none' }, g); s.textContent = 'a'; },
+    setup(svg, level, ctx, extra) {
+      const target = pick([[1.5, 2, 2.5], [3, 4], [5, 6, 8]][level]);
+      ctx.setTask(`Set the jump ratio to ${target}×`, `見出しと本文のサイズ比（ジャンプ率）を ${target} 倍にする`);
+      const body = 11, maxR = 10, X = 50, TOP = 46;
+      const word = pick(['Design', 'Grid', 'Type', 'Form', 'Space', 'Layout']);
+      const head = S('text', { x: X, fill: FG, 'font-weight': 500 }, svg); head.textContent = word;
+      const lines = ['Typography is the craft of endowing human language', 'with a durable visual form. Good spacing is invisible —', 'bad spacing is all you can see. Hierarchy tells the eye', 'where to begin, and where to rest.'];
+      const bodyEls = lines.map(t => { const e = S('text', { x: X, fill: '#9a9a9a', 'font-size': body }, svg); e.textContent = t; return e; });
+      let r; do { r = Math.exp(rand(0, Math.log(maxR))); } while (Math.abs(Math.log(r / target)) < Math.log(1.4));
+      const draw = () => {
+        const hs = body * r, base = TOP + hs * 0.75;
+        head.setAttribute('font-size', hs); head.setAttribute('y', base);
+        bodyEls.forEach((e, i) => e.setAttribute('y', base + 30 + i * 17));
+      };
+      draw();
+      const row = el('div', 'slider');
+      const inp = el('input'); inp.type = 'range'; inp.min = 0; inp.max = 1000; inp.value = Math.round(Math.log(r) / Math.log(maxR) * 1000);
+      inp.addEventListener('input', () => { if (ctx.locked) return; r = Math.exp(inp.value / 1000 * Math.log(maxR)); draw(); });
+      row.append(el('span', '', 'Body'), inp, el('span', '', 'Head'));
+      extra.appendChild(row);
+      return () => {
+        inp.disabled = true;
+        const g = S('text', { x: X, y: TOP + body * target * 0.75, 'font-size': body * target, 'font-weight': 500, fill: 'none', stroke: ACCENT, 'stroke-dasharray': '3 2' }, svg); g.textContent = word;
+        const err = Math.abs(Math.log(r / target));
+        return { score: Math.round(clamp(100 - err * 200, 0, 100)), note: `You <b>${r.toFixed(2)}×</b> &nbsp; Target <b>${target}×</b>` };
+      };
+    }
+  };
+
+  const ORDER = ['shape', 'color', 'golden', 'silver', 'fib', 'layout', 'jump'];
+
+  // ================= SCREENS =================
+  function iconSvg(fn) {
+    const s = S('svg', { viewBox: '0 0 34 34', fill: 'none', stroke: FG, 'stroke-width': 1.4 });
+    fn(s); return s;
   }
 
-  // ---------- screens ----------
+  let cleanup = null;
   function menu() {
-    $mode.textContent = 'Select a test'; $round.textContent = '';
+    if (cleanup) { cleanup(); cleanup = null; }
+    $mode.textContent = ''; $round.textContent = '';
     $main.innerHTML = '';
-    const t = el('div', 'title', 'How good is your eye? &nbsp;<span class="jp">デザイナーの目を試す4つのテスト</span>');
-    const grid = el('div', 'modes');
-    Object.entries(MODES).forEach(([key, m], i) => {
+
+    const hero = el('div', 'hero');
+    const art = S('svg', { viewBox: '0 0 320 200', preserveAspectRatio: 'xMidYMid slice' });
+    const g = S('g', { style: 'mix-blend-mode:multiply' }, art);
+    S('circle', { cx: 168, cy: 78, r: 44, fill: rgbStr(C100), style: 'mix-blend-mode:multiply' }, g);
+    S('circle', { cx: 202, cy: 78, r: 44, fill: rgbStr(M100), style: 'mix-blend-mode:multiply' }, g);
+    S('circle', { cx: 185, cy: 108, r: 44, fill: rgbStr(Y100), style: 'mix-blend-mode:multiply' }, g);
+    const gr = S('g', { fill: 'none', stroke: '#111', 'stroke-width': .8 }, art);
+    S('rect', { x: 40, y: 30, width: 89, height: 55 }, gr); S('line', { x1: 95, y1: 30, x2: 95, y2: 85 }, gr); S('line', { x1: 95, y1: 64, x2: 129, y2: 64 }, gr);
+    S('rect', { x: 255, y: 26, width: 30, height: 30 }, gr); S('polygon', { points: '270,96 288,127 252,127' }, gr);
+    hero.appendChild(art);
+    const copy = el('div', 'copy');
+    copy.appendChild(el('div', '', '<h1>Design Puzzle</h1><div class="jp">図形・色・比率・レイアウト・文字の7つのパズル</div>'));
+    const go = el('button', '', 'Play all'); go.onclick = () => play(ORDER.map(k => ({ key: k, level: 1 })), 'All', 'all');
+    copy.appendChild(go);
+    hero.appendChild(copy);
+
+    const tiles = el('div', 'tiles');
+    ORDER.forEach(key => {
+      const m = MODES[key];
+      const t = el('div', 'tile');
       const best = store.get(key);
-      const card = el('div', 'mode', `
-        <div class="num">0${i + 1}</div>
-        <div class="glyph">${m.glyph}</div>
-        <div class="name">${m.name}</div>
-        <div class="jp">${m.jp}</div>
-        <div class="best">${best ? 'Best ' + best : '—'}</div>`);
-      card.onclick = () => play(key);
-      grid.appendChild(card);
+      if (best) t.appendChild(el('span', 'best', best));
+      t.appendChild(iconSvg(m.icon));
+      t.appendChild(el('span', 'lbl', m.name));
+      t.appendChild(el('span', 'jp', m.jp));
+      t.onclick = () => play([0, 1, 2].map(level => ({ key, level })), m.name, key);
+      tiles.appendChild(t);
     });
-    $main.append(t, grid);
+    const rnd = el('div', 'tile');
+    rnd.appendChild(iconSvg(g => { [0, 12, 24].forEach(x => [0, 12, 24].forEach(y => S('rect', { x: x + 1, y: y + 1, width: 8, height: 8, fill: (x + y) % 24 ? 'none' : FG }, g))); }));
+    rnd.appendChild(el('span', 'lbl', 'Random'));
+    rnd.appendChild(el('span', 'jp', 'ランダム'));
+    rnd.onclick = () => { const key = pick(ORDER); play([0, 1, 2].map(level => ({ key, level })), MODES[key].name, key); };
+    tiles.appendChild(rnd);
+
+    $main.append(hero, tiles);
   }
 
-  function play(key) {
-    const m = MODES[key];
+  function play(seq, title, storeKey) {
     const scores = [];
-    $mode.textContent = m.name;
+    $mode.textContent = title;
     const round = () => {
-      const n = scores.length;
-      $round.textContent = `${n + 1} / ${ROUNDS}`;
+      if (cleanup) { cleanup(); cleanup = null; }
+      const n = scores.length, step = seq[n], m = MODES[step.key];
+      $round.textContent = `${n + 1} / ${seq.length}`;
       $main.innerHTML = '';
       const bar = el('div', 'bar');
       const task = el('div', 'task');
-      const taskTxt = el('div', '', m.task);
-      task.append(taskTxt, el('div', 'jp', m.jp));
+      const tEn = el('div', '', m.task), tJp = el('div', 'jp', m.taskJp);
+      task.append(tEn, tJp);
       const dots = el('div', 'dots');
-      for (let i = 0; i < ROUNDS; i++) dots.appendChild(el('i', i < n ? 'on' : ''));
+      seq.forEach((_, i) => dots.appendChild(el('i', i < n ? 'on' : '')));
       bar.append(task, dots);
-      const stage = el('div', 'stage');
-      const extra = el('div');
+      const svg = S('svg', { viewBox: `0 0 ${W} ${H}`, class: 'stage' });
+      const extra = el('div', 'extra');
       const controls = el('div', 'controls');
-      const result = el('div', 'result', '&nbsp;');
-      const btn = el('button', 'primary', 'Submit');
+      const result = el('div', 'result', `<span class="jp">${m.jp}</span>`);
+      const btn = el('button', 'primary', 'Check');
       controls.append(result, btn);
-      $main.append(bar, stage, extra, controls);
+      $main.append(bar, svg, extra, controls);
 
-      const ctx = { locked: false, ready(ok) { btn.disabled = !ok; btn.style.opacity = ok ? 1 : .3; } };
-      const judge = m.setup(stage, ctx, extra, taskTxt);
+      const ctx = { locked: false, setTask(en, jp) { tEn.textContent = en; tJp.textContent = jp; } };
+      const judge = m.setup(svg, step.level, ctx, extra);
       let done = false;
-      const go = () => {
-        if (btn.disabled) return;
+      const next = () => {
         if (!done) {
           done = true; ctx.locked = true;
           const r = judge();
           scores.push(r.score);
           dots.children[n].classList.add('on');
           result.innerHTML = `Score <b>${r.score}</b> &nbsp; ${r.note}`;
-          btn.textContent = scores.length < ROUNDS ? 'Next' : 'Result';
+          btn.textContent = scores.length < seq.length ? 'Next' : 'Result';
         } else {
-          document.removeEventListener('keydown', onKey);
-          scores.length < ROUNDS ? round() : finish(key, scores);
+          scores.length < seq.length ? round() : finish(title, storeKey, scores);
         }
       };
-      const onKey = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } if (e.key === 'Escape') { document.removeEventListener('keydown', onKey); menu(); } };
+      btn.onclick = next;
+      const onKey = e => {
+        if (e.key === 'Enter') { e.preventDefault(); next(); }
+        if (e.key === 'Escape') menu();
+      };
       document.addEventListener('keydown', onKey);
-      btn.onclick = go;
-      currentCleanup = () => document.removeEventListener('keydown', onKey);
+      cleanup = () => document.removeEventListener('keydown', onKey);
     };
     round();
   }
 
-  let currentCleanup = null;
-
-  function finish(key, scores) {
-    const m = MODES[key];
+  function finish(title, storeKey, scores) {
+    if (cleanup) { cleanup(); cleanup = null; }
     const avg = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-    const prev = store.get(key);
-    if (avg > prev) store.set(key, avg);
-    const rank = avg >= 95 ? 'Pixel perfect' : avg >= 85 ? 'Art director' : avg >= 70 ? 'Senior designer' : avg >= 50 ? 'Junior designer' : 'Intern';
-    const rankJp = { 'Pixel perfect': '完璧な目', 'Art director': 'アートディレクター級', 'Senior designer': 'シニアデザイナー級', 'Junior designer': 'ジュニアデザイナー級', 'Intern': 'インターン' }[rank];
+    const prev = store.get(storeKey);
+    if (avg > prev) store.set(storeKey, avg);
+    const ranks = [[95, 'Pixel perfect', '完璧な目'], [85, 'Art director', 'アートディレクター級'], [70, 'Senior designer', 'シニアデザイナー級'], [50, 'Junior designer', 'ジュニアデザイナー級'], [0, 'Intern', 'インターン']];
+    const [, rank, rankJp] = ranks.find(r => avg >= r[0]);
     $round.textContent = '';
     $main.innerHTML = '';
     const f = el('div', 'final');
     f.innerHTML = `
-      <div class="jp">${m.name} — Result</div>
+      <div class="jp">${title} — Result</div>
       <div class="score">${avg}</div>
       <div>${rank} &nbsp;<span class="jp">${rankJp}</span>${avg > prev ? ' &nbsp;<span style="color:var(--accent)">New best</span>' : ''}</div>
       <div class="rows">${scores.map((s, i) => `<div class="row"><span>Round ${i + 1}</span><b>${s}</b></div>`).join('')}</div>`;
     const ctr = el('div', 'controls');
-    const again = el('button', 'primary', 'Play again'); again.onclick = () => play(key);
+    const g = el('div'); g.style.display = 'flex'; g.style.gap = '10px';
     const back = el('button', '', 'Menu'); back.onclick = menu;
-    const g = el('div'); g.style.display = 'flex'; g.style.gap = '10px'; g.append(back, again);
+    g.append(back);
     ctr.append(el('div', 'result', 'Best ' + Math.max(avg, prev)), g);
     f.appendChild(ctr);
     $main.appendChild(f);
   }
 
-  document.getElementById('home').onclick = () => { if (currentCleanup) currentCleanup(); menu(); };
+  document.getElementById('home').onclick = menu;
   (document.fonts ? document.fonts.ready : Promise.resolve()).then(menu);
 })();
 </script>

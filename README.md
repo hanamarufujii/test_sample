@@ -1,10 +1,15 @@
-# Designer's Eye
+# Design Puzzle
 
-A small game for graphic designers. Open `index.html` in a browser.
+A puzzle game for graphic designers. Open `index.html` in a browser.
 
-- **Kerning** — drag letters until the spacing is optically even
-- **Color** — rebuild the target color with HSB sliders (scored by ΔE)
-- **Center** — click the centroid of a shape
-- **Angle** — set a line to a given angle by eye
+| # | Puzzle | How to play |
+|---|---|---|
+| 01 | Overlap | Drag circles, squares and triangles to match a silhouette |
+| 02 | Mix | Stack CMYK color films (multiply) to match a target color |
+| 03 | Golden | Make 1 : 1.618 rectangles and divisions |
+| 04 | Silver | Make 1 : 1.414 rectangles and divisions |
+| 05 | Fibonacci | Tile the frame with 1·1·2·3·5·8 squares |
+| 06 | Layout | Place elements on the column grid like the target |
+| 07 | Jump | Set the heading/body type-size ratio |
 
-5 rounds per test. Enter = submit / next, Esc = back to menu. Best scores are saved in the browser.
+3 rounds per puzzle, or "Play all" for one round of each. Enter = check / next, Esc = menu.
