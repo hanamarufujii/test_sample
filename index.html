@@ -510,7 +510,88 @@
     }
   };
 
-  const ORDER = ['shape', 'color', 'golden', 'silver', 'fib', 'layout', 'jump'];
+  // 08 — Theme palette: pick 3 colors (top → bottom) and set their balance
+  const THEMES = [
+    { en: 'Beer', jp: 'ビール', colors: ['#f2e6c4', '#e9a82a', '#b9690f'], ratio: [0.2, 0.5, 0.3], decoys: ['#ffffff', '#ffe14d', '#7a3e0a'] },
+    { en: 'Winter sea', jp: '冬の海', colors: ['#9aa5ad', '#2d4654', '#d5dde0'], ratio: [0.4, 0.45, 0.15], decoys: ['#7ec8f0', '#0077b6', '#ffffff'] },
+    { en: 'Desert', jp: '砂漠', colors: ['#a9c9dc', '#ddb277', '#9c6236'], ratio: [0.35, 0.45, 0.2], decoys: ['#4fa8ff', '#f3d34a', '#5a3a22'] }
+  ];
+  const hexRgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const isLight = h => { const [r, g, b] = hexRgb(h); return (r * 0.299 + g * 0.587 + b * 0.114) / 255 > 0.6; };
+  MODES.palette = {
+    name: 'Palette', jp: '配色',
+    task: '', taskJp: '',
+    icon: g => { S('rect', { x: 9, y: 1, width: 16, height: 7 }, g); S('rect', { x: 9, y: 8, width: 16, height: 15 }, g); S('rect', { x: 9, y: 23, width: 16, height: 10 }, g); },
+    setup(svg, level, ctx) {
+      const th = THEMES[level];
+      ctx.setTask(`Pick 3 colors for “${th.en}” and set the balance`, `「${th.jp}」の3色を上から順に選び、配分を指で調整する`);
+      const BX = 230, BY = 24, BW = 140, BH = 352;
+      label(svg, BX, 16, 'YOU');
+      const chosen = [];
+      let d = [1 / 3, 2 / 3];
+      const segs = [0, 1, 2].map(() => S('rect', { x: BX, width: BW }, svg));
+      S('rect', { x: BX, y: BY, width: BW, height: BH, fill: 'none', stroke: '#333' }, svg);
+      const handles = [0, 1].map(i => {
+        const g = S('g', { class: 'drag' }, svg);
+        S('rect', { x: BX - 24, y: -16, width: BW + 48, height: 32, fill: 'transparent' }, g);
+        S('line', { x1: BX - 10, y1: 0, x2: BX + BW + 10, y2: 0, stroke: FG }, g);
+        S('rect', { x: BX + BW + 10, y: -6, width: 12, height: 12, fill: FG }, g);
+        let o;
+        draggable(g, svg, ctx, {
+          start() { o = d[i]; },
+          move(dx, dy) { d[i] = i === 0 ? clamp(o + dy / BH, 0.04, d[1] - 0.04) : clamp(o + dy / BH, d[0] + 0.04, 0.96); draw(); }
+        });
+        return g;
+      });
+      const draw = () => {
+        const edges = [0, d[0], d[1], 1];
+        segs.forEach((s, i) => {
+          s.setAttribute('y', BY + edges[i] * BH); s.setAttribute('height', (edges[i + 1] - edges[i]) * BH);
+          if (chosen[i]) { s.setAttribute('fill', chosen[i]); s.setAttribute('stroke', 'none'); }
+          else { s.setAttribute('fill', '#0e0e0e'); s.setAttribute('stroke', '#333'); s.setAttribute('stroke-dasharray', '3 3'); }
+        });
+        handles.forEach((h, i) => h.setAttribute('transform', `translate(0,${BY + d[i] * BH})`));
+      };
+      // swatches: 3 correct + 3 decoys, shuffled
+      const chips = shuffle([...th.colors, ...th.decoys]).map((hex, k) => {
+        const x = 430 + (k % 2) * 86, y = 30 + Math.floor(k / 2) * 116, s = 70;
+        const g = S('g', { class: 'click' }, svg);
+        S('rect', { x, y, width: s, height: s, fill: hex }, g);
+        const ring = S('rect', { x: x - 4, y: y - 4, width: s + 8, height: s + 8, fill: 'none', stroke: FG, 'stroke-width': 1.5, opacity: 0 }, g);
+        const num = label(g, x + s / 2, y + s / 2 + 5, '', isLight(hex) ? '#111' : '#fff', 14, 'middle');
+        g.addEventListener('pointerdown', () => {
+          if (ctx.locked) return;
+          const at = chosen.indexOf(hex);
+          if (at >= 0) chosen.splice(at, 1); else if (chosen.length < 3) chosen.push(hex);
+          chips.forEach(c => { const i = chosen.indexOf(c.hex); c.ring.setAttribute('opacity', i >= 0 ? 1 : 0); c.num.textContent = i >= 0 ? String(i + 1) : ''; });
+          draw();
+        });
+        return { hex, ring, num, x, y, s };
+      });
+      draw();
+      return () => {
+        // answer band on the left
+        label(svg, 60, 16, 'ANSWER');
+        let y = BY;
+        th.colors.forEach((c, i) => {
+          const h = th.ratio[i] * BH;
+          S('rect', { x: 60, y, width: 110, height: h, fill: c }, svg);
+          label(svg, 178, y + h / 2 + 4, `${Math.round(th.ratio[i] * 100)}%`);
+          y += h;
+        });
+        chips.forEach(c => { if (th.colors.includes(c.hex)) S('rect', { x: c.x - 8, y: c.y - 8, width: c.s + 16, height: c.s + 16, fill: 'none', stroke: ACCENT, 'stroke-dasharray': '3 3' }, svg); });
+        const mine = [d[0], d[1] - d[0], 1 - d[1]];
+        const color = th.colors.reduce((s, c, i) => s + (chosen[i] ? clamp(100 - deltaE(hexRgb(chosen[i]), hexRgb(c)) * 4, 0, 100) : 0), 0) / 3;
+        const balance = clamp(100 - mine.reduce((s, r, i) => s + Math.abs(r - th.ratio[i]), 0) * 200, 0, 100);
+        return {
+          score: Math.round(color * 0.6 + balance * 0.4),
+          note: `Color <b>${Math.round(color)}</b> &nbsp; Balance <b>${Math.round(balance)}</b> &nbsp; You <b>${mine.map(r => Math.round(r * 100) + '%').join(' / ')}</b>`
+        };
+      };
+    }
+  };
+
+  const ORDER = ['shape', 'color', 'golden', 'silver', 'fib', 'layout', 'jump', 'palette'];
 
   // ================= SCREENS =================
   function iconSvg(fn) {
@@ -535,7 +616,7 @@
     S('rect', { x: 255, y: 26, width: 30, height: 30 }, gr); S('polygon', { points: '270,96 288,127 252,127' }, gr);
     hero.appendChild(art);
     const copy = el('div', 'copy');
-    copy.appendChild(el('div', '', '<h1>Design Puzzle</h1><div class="jp">図形・色・比率・レイアウト・文字の7つのパズル</div>'));
+    copy.appendChild(el('div', '', '<h1>Design Puzzle</h1><div class="jp">図形・色・比率・レイアウト・文字・配色の8つのパズル</div>'));
     const go = el('button', '', 'Play all'); go.onclick = () => play(ORDER.map(k => ({ key: k, level: 1 })), 'All', 'all');
     copy.appendChild(go);
     hero.appendChild(copy);
@@ -552,13 +633,6 @@
       t.onclick = () => play([0, 1, 2].map(level => ({ key, level })), m.name, key);
       tiles.appendChild(t);
     });
-    const rnd = el('div', 'tile');
-    rnd.appendChild(iconSvg(g => { [0, 12, 24].forEach(x => [0, 12, 24].forEach(y => S('rect', { x: x + 1, y: y + 1, width: 8, height: 8, fill: (x + y) % 24 ? 'none' : FG }, g))); }));
-    rnd.appendChild(el('span', 'lbl', 'Random'));
-    rnd.appendChild(el('span', 'jp', 'ランダム'));
-    rnd.onclick = () => { const key = pick(ORDER); play([0, 1, 2].map(level => ({ key, level })), MODES[key].name, key); };
-    tiles.appendChild(rnd);
-
     $main.append(hero, tiles);
   }
 
