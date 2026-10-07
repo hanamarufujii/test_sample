@@ -181,13 +181,16 @@
   function deltaE(a, b) { var A = lab(a), B = lab(b); return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); }
   function isLight(rgb) { return (rgb[0] * .299 + rgb[1] * .587 + rgb[2] * .114) / 255 > .6; }
 
-  // ---------- simple shapes ----------
+  // ---------- simple shapes (rot = degrees, around the shape's center) ----------
   function shapeAttrs(s) {
-    var a = s.size, x = s.x, y = s.y;
-    if (s.type === 'circle') return ['circle', { cx: x, cy: y, r: a / 2 }];
-    if (s.type === 'square') return ['rect', { x: x - a / 2, y: y - a / 2, width: a, height: a }];
-    var h = a * Math.sqrt(3) / 2;
-    return ['polygon', { points: x + ',' + (y - h / 2) + ' ' + (x + a / 2) + ',' + (y + h / 2) + ' ' + (x - a / 2) + ',' + (y + h / 2) }];
+    var a = s.size, x = s.x, y = s.y, d;
+    if (s.type === 'circle') d = ['circle', { cx: x, cy: y, r: a / 2 }];
+    else if (s.type === 'square') d = ['rect', { x: x - a / 2, y: y - a / 2, width: a, height: a }];
+    else { var h = a * Math.sqrt(3) / 2; d = ['polygon', { points: x + ',' + (y - h / 2) + ' ' + (x + a / 2) + ',' + (y + h / 2) + ' ' + (x - a / 2) + ',' + (y + h / 2) }]; }
+    // triangles turn around their centroid, so every 120° looks identical
+    var py = s.type === 'tri' ? y + a * Math.sqrt(3) / 12 : y;
+    d[1].transform = s.rot ? 'rotate(' + s.rot + ' ' + x + ' ' + py + ')' : '';
+    return d;
   }
   function drawShape(parent, s, style) { var d = shapeAttrs(s), at = d[1]; for (var k in style) at[k] = style[k]; return S(d[0], at, parent); }
   function iou(A, B) {
@@ -196,11 +199,12 @@
       var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
       var c = cv.getContext('2d'); c.fillStyle = '#000';
       list.forEach(function (s) {
-        var x = s.x * k, y = s.y * k, a = s.size * k; c.beginPath();
-        if (s.type === 'circle') c.arc(x, y, a / 2, 0, Math.PI * 2);
-        else if (s.type === 'square') c.rect(x - a / 2, y - a / 2, a, a);
-        else { var hh = a * Math.sqrt(3) / 2; c.moveTo(x, y - hh / 2); c.lineTo(x + a / 2, y + hh / 2); c.lineTo(x - a / 2, y + hh / 2); c.closePath(); }
-        c.fill();
+        var a = s.size * k, hh = a * Math.sqrt(3) / 2, tri = s.type === 'tri';
+        c.save(); c.translate(s.x * k, s.y * k + (tri ? hh / 6 : 0)); c.rotate((s.rot || 0) * Math.PI / 180); c.beginPath();
+        if (s.type === 'circle') c.arc(0, 0, a / 2, 0, Math.PI * 2);
+        else if (s.type === 'square') c.rect(-a / 2, -a / 2, a, a);
+        else { c.moveTo(0, -hh * 2 / 3); c.lineTo(a / 2, hh / 3); c.lineTo(-a / 2, hh / 3); c.closePath(); }
+        c.fill(); c.restore();
       });
       return c.getImageData(0, 0, w, h).data;
     }
@@ -228,38 +232,88 @@
   // ================= PUZZLES =================
   var M = {};
 
-  // --- Overlap shapes ---
-  var COMPS2 = [
-    [['square', 110, 0, 30], ['tri', 140, 0, -78]], [['circle', 120, 0, 45], ['circle', 80, 0, -50]],
-    [['circle', 100, 0, -30], ['tri', 90, 0, 45]], [['square', 100, -38, 0], ['circle', 100, 38, 0]],
-    [['tri', 120, -30, 10], ['tri', 120, 30, 10]]
+  // --- Overlap shapes: 1st is easy, then it gets harder (more pieces, look-alikes, a decoy, rotation) ---
+  // [type, size, dx, dy, rotation]
+  var OVERLAP = [
+    [ // 1: two pieces
+      [['square', 110, 0, 30], ['tri', 140, 0, -78]],
+      [['circle', 120, 0, 45], ['circle', 80, 0, -50]],
+      [['circle', 100, 0, -30], ['tri', 90, 0, 45]]
+    ],
+    [ // 2: four pieces, same shapes in different sizes
+      [['circle', 130, 0, 60], ['circle', 80, 0, -40], ['tri', 34, -24, -82], ['tri', 34, 24, -82]],             // cat
+      [['square', 100, 0, 40], ['square', 60, 0, -48], ['circle', 26, 0, -88], ['circle', 50, 0, 100]]          // robot
+    ],
+    [ // 3: three or four pieces + a decoy
+      [['square', 110, 0, 40], ['tri', 140, 0, -68], ['circle', 56, 80, -90]],                                  // house + sun
+      [['circle', 120, 0, 55], ['circle', 80, 0, -40], ['square', 50, 0, -95]],                                 // snowman
+      [['tri', 150, 0, -20], ['square', 40, 0, 60], ['circle', 40, 0, -85]]                                    // tree
+    ],
+    [ // 4: rotated pieces (tap to rotate) + a decoy
+      [['circle', 110, 10, 0], ['tri', 70, -60, -10, 90], ['tri', 40, 10, -62]],                                  // fish
+      [['tri', 100, 0, 32, 180], ['circle', 90, 0, -25]],                                                       // ice cream
+      [['square', 100, -10, -20, 45], ['tri', 40, -10, 52, 180], ['circle', 22, -10, 88]]                       // kite
+    ],
+    [ // 5+: five or six pieces + rotation + a decoy
+      [['tri', 70, 0, -68], ['square', 70, 0, -5], ['square', 70, 0, 60], ['tri', 50, -45, 80], ['tri', 50, 45, 80], ['tri', 40, 0, 92, 180]], // rocket
+      [['circle', 110, 0, 20], ['circle', 60, 50, -40], ['tri', 30, 84, -44, 90], ['tri', 60, -60, 0, 270], ['tri', 26, 45, -75]],             // bird
+      [['tri', 140, 0, 45, 180], ['tri', 110, -5, -18], ['tri', 70, 50, 0], ['square', 20, -5, -72], ['circle', 50, 95, -90]]                // sailboat
+    ]
   ];
-  var COMPS3 = [
-    [['square', 110, 0, 40], ['tri', 140, 0, -68], ['circle', 56, 80, -90]], [['circle', 120, 0, 55], ['circle', 80, 0, -40], ['square', 50, 0, -95]],
-    [['tri', 150, 0, -20], ['square', 40, 0, 60], ['circle', 40, 0, -85]], [['square', 80, -50, 20], ['square', 80, 50, 20], ['circle', 90, 0, -20]]
-  ];
+  var SYM = { circle: 360, square: 90, tri: 120 };
   M.shape = {
     name: 'Overlap', jp: '図形をかさねる', cat: 'Form',
-    task: 'Overlap the shapes to match the silhouette', taskJp: '図形を重ねて、グレーのシルエットと同じ形にする',
+    task: 'Overlap the shapes to match the silhouette', taskJp: '図形を指でつまんで運び、シルエットと同じ形にする。トンと触ると回る',
     icon: function (g) { S('rect', { x: 2, y: 12, width: 18, height: 18 }, g); S('circle', { cx: 22, cy: 14, r: 10 }, g); },
     setup: function (svg, level, ctx) {
-      var comp = level < 2 ? pick(COMPS2) : pick(COMPS3), cx = 190, cy = 200;
-      var target = comp.map(function (c) { return { type: c[0], size: c[1], x: cx + c[2], y: cy + c[3] }; });
-      target.forEach(function (s) { drawShape(svg, s, { fill: '#ebebeb' }); });
-      T(svg, 20, 28, 'TARGET');
-      S('line', { x1: 390, y1: 30, x2: 390, y2: 370, stroke: LINE }, svg);
+      var stage = Math.min(ctx.nth || 0, OVERLAP.length - 1), comp = pick(OVERLAP[stage]), cx = 170, cy = 200, DIV = 340;
+      var target = comp.map(function (c) { return { type: c[0], size: c[1], x: cx + c[2], y: cy + c[3], rot: c[4] || 0 }; });
+      target.forEach(function (s) { drawShape(svg, s, { fill: '#e9e9e9' }); });
+      S('line', { x1: DIV, y1: 24, x2: DIV, y2: 376, stroke: LINE }, svg);
+      // pieces: the target's shapes (unrotated) + a decoy from stage 3 on
+      var kinds = target.map(function (t) { return { type: t.type, size: t.size }; });
+      if (stage >= 2) {
+        var dk; do { dk = { type: pick(['circle', 'square', 'tri']), size: Math.round(rand(30, 110)) }; }
+        while (kinds.some(function (k) { return k.type === dk.type && Math.abs(k.size - dk.size) < 18; }));
+        kinds.push(dk);
+      }
+      kinds = shuffle(kinds);
+      // shelf-pack the tray
+      var tx = DIV + 14, tw = W - tx - 10, px = tx, py = 20, row = 0;
+      var pieces = kinds.map(function (k) {
+        var bw = k.size, bh = k.type === 'tri' ? k.size * Math.sqrt(3) / 2 : k.size;
+        if (px + bw > tx + tw) { px = tx; py += row + 12; row = 0; }
+        var p = { type: k.type, size: k.size, rot: 0, x: px + bw / 2, y: py + bh / 2 };
+        px += bw + 12; row = Math.max(row, bh); return p;
+      });
       var layer = S('g', {}, svg);
-      var pieces = shuffle(target).map(function (s, i, arr) { return { type: s.type, size: s.size, x: 495, y: 200 + (i - (arr.length - 1) / 2) * 125 }; });
+      function placed() { return pieces.filter(function (p) { return p.x < DIV; }); }
+      function snap(p) {
+        target.forEach(function (t) {
+          if (t.type !== p.type || t.size !== p.size) return;
+          var da = ((p.rot - t.rot) % SYM[t.type] + SYM[t.type]) % SYM[t.type];
+          if (da !== 0) return;
+          if (Math.hypot(p.x - t.x, p.y - t.y) > 18) return;
+          var taken = pieces.some(function (q) { return q !== p && q.x === t.x && q.y === t.y && q.type === t.type; });
+          if (!taken) { p.x = t.x; p.y = t.y; }
+        });
+      }
+      function check() { if (iou(target, placed()) >= .985) ctx.solved(); }
       pieces.forEach(function (p) {
-        var node = drawShape(layer, p, { fill: 'rgba(17,17,17,.07)', stroke: FG, 'class': 'up-drag' }), ox, oy;
+        var node = drawShape(layer, p, { fill: 'rgba(17,17,17,.07)', stroke: FG, 'class': 'up-drag' }), ox, oy, moved;
+        function draw() { var at = shapeAttrs(p)[1]; for (var k in at) node.setAttribute(k, at[k]); }
         draggable(node, svg, ctx, {
-          start: function () { ox = p.x; oy = p.y; layer.appendChild(node); },
-          move: function (dx, dy) { p.x = clamp(ox + dx, 0, W); p.y = clamp(oy + dy, 0, H); var at = shapeAttrs(p)[1]; for (var k in at) node.setAttribute(k, at[k]); }
+          start: function () { ox = p.x; oy = p.y; moved = 0; layer.appendChild(node); },
+          move: function (dx, dy) { moved = Math.max(moved, Math.hypot(dx, dy)); p.x = clamp(ox + dx, 0, W); p.y = clamp(oy + dy, 0, H); draw(); },
+          end: function () {
+            if (moved < 4) { p.x = ox; p.y = oy; if (p.type !== 'circle') p.rot = (p.rot + 15) % 360; }   // a tap rotates
+            snap(p); draw(); check();
+          }
         });
       });
       return function () {
         target.forEach(function (s) { drawShape(svg, s, { fill: 'none', stroke: RED, 'stroke-dasharray': '4 4' }); });
-        var v = iou(target, pieces);
+        var v = iou(target, placed());
         return { score: Math.round(clamp((v - .4) / .6 * 100, 0, 100)), note: 'Match <b>' + (v * 100).toFixed(1) + '%</b>' };
       };
     }
@@ -687,7 +741,13 @@
     btnGo.textContent = 'Check'; btnBack.disabled = pos === 0;
     var svg = S('svg', { viewBox: '0 0 ' + W + ' ' + H, 'class': 'up-svg', role: 'img', 'aria-label': m.name });
     stage.appendChild(svg);
-    ctx = { locked: false, setTask: function (en, jp) { tEn.textContent = en; tJp.textContent = jp; } };
+    var nth = hist.slice(0, pos).filter(function (h) { return h.key === e.key; }).length, at = pos;
+    ctx = {
+      locked: false, nth: nth,
+      setTask: function (en, jp) { tEn.textContent = en; tJp.textContent = jp; },
+      // solved by the player: show the red check, then move on by itself
+      solved: function () { setTimeout(function () { if (pos !== at || done) return; go(); setTimeout(function () { if (pos === at && done) go(); }, 1400); }, 200); }
+    };
     SEED = e.seed;
     judge = m.setup(svg, e.level, ctx, extra);
   }
