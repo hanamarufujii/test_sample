@@ -12,7 +12,8 @@ White, responsive version of Design Puzzle for the u-ma.jp first view
 Overlap · CMYK · RGB · Palette · Scheme · Golden · Silver · Fibonacci ·
 Layout · Jump · Editorial · Crop
 
-Opens straight into a random puzzle. Back = previous question (same question again),
+One game = 10 different puzzles (easy → hard), then a final score and rank.
+Back = previous question (same question again),
 Reset = start this question over, Index = pick any puzzle.
 
 ## Notes

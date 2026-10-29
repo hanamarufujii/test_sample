@@ -85,6 +85,15 @@
 #uma-puzzle .up-tile .up-lbl { font-size: 10px; font-weight: 500; }
 #uma-puzzle .up-tile .up-jp { font-size: 9px; }
 
+#uma-puzzle .up-final { border: 1px solid var(--line); padding: 28px 24px; display: flex; flex-direction: column; gap: 10px; }
+#uma-puzzle .up-big { font-size: 88px; font-weight: 400; letter-spacing: 0; line-height: 1; }
+#uma-puzzle .up-sub { color: var(--dim); }
+#uma-puzzle .up-sub em { color: var(--red); font-style: normal; }
+#uma-puzzle .up-sub b { color: var(--fg); font-weight: 500; }
+#uma-puzzle .up-rows { margin-top: 10px; border-top: 1px solid var(--line); }
+#uma-puzzle .up-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--line); color: var(--dim); }
+#uma-puzzle .up-row b { color: var(--fg); font-weight: 500; }
+
 @media (min-width: 900px) {
   #uma-puzzle, #uma-puzzle .up-index { padding: 56px 32px; }
   #uma-puzzle .up-grid {
@@ -266,7 +275,7 @@
     task: 'Overlap the shapes to match the silhouette', taskJp: '図形を指でつまんで運び、シルエットと同じ形にする。トンと触ると回る',
     icon: function (g) { S('rect', { x: 2, y: 12, width: 18, height: 18 }, g); S('circle', { cx: 22, cy: 14, r: 10 }, g); },
     setup: function (svg, level, ctx) {
-      var stage = Math.min(ctx.nth || 0, OVERLAP.length - 1), comp = pick(OVERLAP[stage]), cx = 170, cy = 200, DIV = 340;
+      var stage = level === 0 ? 0 : level === 1 ? 1 + Math.floor(R() * 2) : 3 + Math.floor(R() * 2), comp = pick(OVERLAP[stage]), cx = 170, cy = 200, DIV = 340;
       var target = comp.map(function (c) { return { type: c[0], size: c[1], x: cx + c[2], y: cy + c[3], rot: c[4] || 0 }; });
       target.forEach(function (s) { drawShape(svg, s, { fill: '#e9e9e9' }); });
       S('line', { x1: DIV, y1: 24, x2: DIV, y2: 376, stroke: LINE }, svg);
@@ -359,13 +368,18 @@
   var THEMES = [
     { en: 'Beer', jp: 'ビール', colors: ['#f2e6c4', '#e9a82a', '#b9690f'], ratio: [.2, .5, .3], decoys: ['#ffffff', '#ffe14d', '#7a3e0a'] },
     { en: 'Winter sea', jp: '冬の海', colors: ['#9aa5ad', '#2d4654', '#d5dde0'], ratio: [.4, .45, .15], decoys: ['#7ec8f0', '#0077b6', '#ffffff'] },
-    { en: 'Desert', jp: '砂漠', colors: ['#a9c9dc', '#ddb277', '#9c6236'], ratio: [.35, .45, .2], decoys: ['#4fa8ff', '#f3d34a', '#5a3a22'] }
+    { en: 'Desert', jp: '砂漠', colors: ['#a9c9dc', '#ddb277', '#9c6236'], ratio: [.35, .45, .2], decoys: ['#4fa8ff', '#f3d34a', '#5a3a22'] },
+    { en: 'Sunset sea', jp: '夕焼けの海', colors: ['#f4a259', '#d9543c', '#2b3a55'], ratio: [.5, .15, .35], decoys: ['#ffd23f', '#ff1f1f', '#0a6cff'] },
+    { en: 'Iced latte', jp: 'アイスラテ', colors: ['#f1e9dc', '#b88a5c', '#3e2418'], ratio: [.35, .25, .4], decoys: ['#ffffff', '#e8c07a', '#000000'] },
+    { en: 'Cherry blossom', jp: '桜', colors: ['#cfe3f0', '#f4c6d0', '#4a3b3e'], ratio: [.45, .4, .15], decoys: ['#87ceeb', '#ff69b4', '#000000'] },
+    { en: 'Night city', jp: '夜の街', colors: ['#1b2238', '#f2c14e', '#3a3d45'], ratio: [.55, .15, .3], decoys: ['#000000', '#ffff00', '#808080'] },
+    { en: 'Matcha latte', jp: '抹茶ラテ', colors: ['#eef0e2', '#9fb46a', '#f3efe3'], ratio: [.2, .45, .35], decoys: ['#59c135', '#ffffff', '#6b7a2e'] }
   ];
   M.palette = {
     name: 'Palette', jp: 'テーマの配色', cat: 'Color', task: '', taskJp: '',
     icon: function (g) { S('rect', { x: 9, y: 1, width: 16, height: 7 }, g); S('rect', { x: 9, y: 8, width: 16, height: 15 }, g); S('rect', { x: 9, y: 23, width: 16, height: 10 }, g); },
     setup: function (svg, level, ctx) {
-      var th = THEMES[level], BX = 230, BY = 24, BW = 140, BH = 352, chosen = [], d = [1 / 3, 2 / 3];
+      var th = pick(THEMES), BX = 230, BY = 24, BW = 140, BH = 352, chosen = [], d = [1 / 3, 2 / 3];
       ctx.setTask('Pick 3 colors for “' + th.en + '” and set the balance', '「' + th.jp + '」の3色を上から順に選び、境目の線を動かして配分を決める');
       T(svg, BX, 16, 'YOU');
       var segs = [0, 1, 2].map(function () { return S('rect', { x: BX, width: BW }, svg); });
@@ -518,9 +532,9 @@
     icon: function (g) { S('rect', { x: 0, y: 6, width: 21, height: 21 }, g); S('rect', { x: 21, y: 6, width: 13, height: 13 }, g); S('rect', { x: 21, y: 19, width: 8, height: 8 }, g); },
     setup: function (svg, level, ctx) {
       var sizes = [[1, 1, 2, 3], [1, 1, 2, 3, 5], [1, 1, 2, 3, 5, 8]][level], u = [40, 34, 24][level];
-      var rx = 0, ry = 0, rw = 1, rh = 1, canon = [{ x: 0, y: 0, s: 1 }];
+      var turn = Math.floor(R() * 4), rx = 0, ry = 0, rw = 1, rh = 1, canon = [{ x: 0, y: 0, s: 1 }];
       for (var i = 1; i < sizes.length; i++) {
-        var s = sizes[i], d = (i - 1) % 4;
+        var s = sizes[i], d = (i - 1 + turn) % 4;
         if (d === 0) { canon.push({ x: rx + rw, y: ry, s: s }); rw += s; }
         else if (d === 1) { canon.push({ x: rx, y: ry + rh, s: s }); rh += s; }
         else if (d === 2) { canon.push({ x: rx - s, y: ry, s: s }); rx -= s; rw += s; }
@@ -566,7 +580,10 @@
   var LAYOUTS = [
     { n: 3, els: [['photo', 0, 3, 20, 160], ['title', 0, 2, 196, 24], ['text', 0, 2, 236, 100], ['photo', 2, 1, 196, 60]] },
     { n: 2, els: [['title', 0, 2, 20, 34], ['photo', 1, 1, 74, 220], ['text', 0, 1, 74, 140]] },
-    { n: 4, els: [['photo', 1, 3, 20, 200], ['title', 0, 3, 236, 26], ['text', 0, 2, 278, 62], ['text', 3, 1, 236, 104]] }
+    { n: 4, els: [['photo', 1, 3, 20, 200], ['title', 0, 3, 236, 26], ['text', 0, 2, 278, 62], ['text', 3, 1, 236, 104]] },
+    { n: 3, els: [['title', 0, 3, 20, 30], ['photo', 0, 1, 66, 120], ['photo', 1, 2, 66, 120], ['text', 0, 3, 202, 120]] },
+    { n: 2, els: [['photo', 0, 2, 20, 170], ['title', 0, 1, 206, 28], ['text', 1, 1, 206, 130]] },
+    { n: 4, els: [['title', 1, 3, 20, 26], ['photo', 0, 2, 62, 150], ['photo', 2, 2, 62, 70], ['text', 2, 2, 148, 64], ['text', 0, 4, 230, 100]] }
   ];
   function drawEl(p, type, w, h) {
     if (type === 'photo') { S('rect', { width: w, height: h, fill: '#e4e4e4' }, p); S('line', { x1: 0, y1: 0, x2: w, y2: h, stroke: '#cfcfcf' }, p); S('line', { x1: w, y1: 0, x2: 0, y2: h, stroke: '#cfcfcf' }, p); }
@@ -578,7 +595,7 @@
     task: 'Place the elements on the grid like the target', taskJp: 'お手本どおりに、要素をグリッドへ配置する',
     icon: function (g) { S('rect', { x: 4, y: 0, width: 26, height: 34 }, g); S('line', { x1: 13, y1: 0, x2: 13, y2: 34 }, g); S('line', { x1: 21, y1: 0, x2: 21, y2: 34 }, g); },
     setup: function (svg, level, ctx) {
-      var L = LAYOUTS[level], P = { x: 30, y: 20, w: 280, h: 360 }, m = 20, g = 12, colW = (P.w - 2 * m - (L.n - 1) * g) / L.n;
+      var L = pick(LAYOUTS), P = { x: 30, y: 20, w: 280, h: 360 }, m = 20, g = 12, colW = (P.w - 2 * m - (L.n - 1) * g) / L.n;
       var els = L.els.map(function (e) { return { type: e[0], w: e[2] * colW + (e[2] - 1) * g, h: e[4], tx: P.x + m + e[1] * (colW + g), ty: P.y + e[3] }; });
       S('rect', { x: P.x, y: P.y, width: P.w, height: P.h, fill: '#fff', stroke: '#cfcfcf' }, svg);
       for (var i = 0; i < L.n; i++) S('rect', { x: P.x + m + i * (colW + g), y: P.y + m, width: colW, height: P.h - 2 * m, fill: 'rgba(230,0,18,.06)' }, svg);
@@ -722,73 +739,97 @@
   var ORDER = ['shape', 'cmyk', 'rgb', 'palette', 'scheme', 'golden', 'silver', 'fib', 'layout', 'jump', 'edit', 'crop'];
 
   // ================= CONTROLLER =================
+  // One game = 10 different puzzles, getting harder, then a final score.
+  var GAME = 10, LEVELS = [0, 0, 0, 1, 1, 1, 1, 2, 2, 2];
+  var RANKS = [[95, 'Pixel perfect', '完璧な目'], [85, 'Art director', 'アートディレクター級'], [70, 'Senior designer', 'シニアデザイナー級'], [50, 'Junior designer', 'ジュニアデザイナー級'], [0, 'Intern', 'インターン']];
   var $ = function (s) { return root.querySelector(s); };
   var stage = $('.up-stage'), extra = $('.up-extra'), result = $('.up-result');
-  var btnGo = $('[data-act=go]'), btnBack = $('[data-act=back]');
-  var hist = [], pos = -1, judge = null, done = false, ctx = null, bag = [];
+  var btnGo = $('[data-act=go]'), btnBack = $('[data-act=back]'), btnReset = $('[data-act=reset]');
+  var hist = [], pos = 0, judge = null, done = false, ctx = null, over = false;
+  var store = { get: function () { try { return +localStorage.getItem('uma_puzzle_best') || 0; } catch (e) { return 0; } }, set: function (v) { try { localStorage.setItem('uma_puzzle_best', v); } catch (e) {} } };
 
-  function nextKey() { if (!bag.length) { bag = ORDER.slice(); for (var i = bag.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = bag[i]; bag[i] = bag[j]; bag[j] = t; } } return bag.pop(); }
-  function newEntry(key) { return { key: key, level: hist.length < 3 ? 0 : Math.floor(Math.random() * 3), seed: Math.floor(Math.random() * 1e9) }; }
-
+  function newGame(first) {
+    var keys = ORDER.filter(function (k) { return k !== first; });
+    for (var i = keys.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = keys[i]; keys[i] = keys[j]; keys[j] = t; }
+    if (first) keys.unshift(first);
+    hist = keys.slice(0, GAME).map(function (k, i) { return { key: k, level: LEVELS[i], seed: Math.floor(Math.random() * 1e9), score: null }; });
+    pos = 0; over = false; render();
+  }
   function render() {
     var e = hist[pos], m = M[e.key];
     done = false; stage.innerHTML = ''; extra.innerHTML = '';
-    $('.up-no').innerHTML = 'No.' + ('0' + (pos + 1)).slice(-2) + ' &nbsp;—&nbsp; <em>' + m.cat + '</em>';
+    $('.up-no').innerHTML = 'No.' + ('0' + (pos + 1)).slice(-2) + ' / ' + GAME + ' &nbsp;—&nbsp; <em>' + m.cat + '</em>';
     $('.up-name').textContent = m.name; $('.up-namejp').textContent = m.jp;
     var tEn = $('.up-task-en'), tJp = $('.up-task-jp');
     tEn.textContent = m.task; tJp.textContent = m.taskJp;
     result.innerHTML = 'Level <b>' + (e.level + 1) + '</b> / 3';
-    btnGo.textContent = 'Check'; btnBack.disabled = pos === 0;
+    btnGo.textContent = 'Check'; btnBack.disabled = pos === 0; btnReset.disabled = false;
     var svg = S('svg', { viewBox: '0 0 ' + W + ' ' + H, 'class': 'up-svg', role: 'img', 'aria-label': m.name });
     stage.appendChild(svg);
-    var nth = hist.slice(0, pos).filter(function (h) { return h.key === e.key; }).length, at = pos;
+    var at = pos;
     ctx = {
-      locked: false, nth: nth,
+      locked: false,
       setTask: function (en, jp) { tEn.textContent = en; tJp.textContent = jp; },
       // solved by the player: show the red check, then move on by itself
-      solved: function () { setTimeout(function () { if (pos !== at || done) return; go(); setTimeout(function () { if (pos === at && done) go(); }, 1400); }, 200); }
+      solved: function () { setTimeout(function () { if (pos !== at || done || over) return; go(); setTimeout(function () { if (pos === at && done && !over) go(); }, 1400); }, 200); }
     };
     SEED = e.seed;
     judge = m.setup(svg, e.level, ctx, extra);
   }
+  function finish() {
+    over = true;
+    var total = Math.round(hist.reduce(function (s, h) { return s + (h.score || 0); }, 0) / GAME);
+    var best = store.get(), isBest = total > best; if (isBest) store.set(total);
+    var rk = RANKS.filter(function (r) { return total >= r[0]; })[0];
+    stage.innerHTML = ''; extra.innerHTML = '';
+    $('.up-no').innerHTML = 'Result';
+    $('.up-name').textContent = rk[1]; $('.up-namejp').textContent = rk[2];
+    $('.up-task-en').textContent = ''; $('.up-task-jp').textContent = '';
+    var box = el('div', 'up-final');
+    box.appendChild(el('div', 'up-big', String(total)));
+    box.appendChild(el('div', 'up-sub', (isBest ? '<em>New best</em>' : 'Best <b>' + Math.max(best, total) + '</b>') + ' &nbsp; / 100'));
+    var rows = el('div', 'up-rows');
+    hist.forEach(function (h, i) { rows.appendChild(el('div', 'up-row', '<span>' + ('0' + (i + 1)).slice(-2) + ' &nbsp; ' + M[h.key].name + '</span><b>' + (h.score == null ? '—' : h.score) + '</b>')); });
+    box.appendChild(rows);
+    stage.appendChild(box);
+    result.innerHTML = '';
+    btnGo.textContent = 'Play again'; btnBack.disabled = false; btnReset.disabled = true;
+  }
   function go() {
+    if (over) { newGame(); return; }
     if (!done) {
       done = true; ctx.locked = true;
       var r = judge(); hist[pos].score = r.score;
-      var played = hist.filter(function (h) { return h.score != null; });
-      var avg = Math.round(played.reduce(function (s, h) { return s + h.score; }, 0) / played.length);
-      result.innerHTML = 'Score <b class="up-hi">' + r.score + '</b> &nbsp; ' + r.note + '<br>Average <b>' + avg + '</b> &nbsp; Played <b>' + played.length + '</b>';
-      btnGo.textContent = 'Next →';
-    } else {
-      if (pos === hist.length - 1) hist.push(newEntry(nextKey()));
-      pos++; render();
-    }
+      var sum = hist.reduce(function (s, h) { return s + (h.score || 0); }, 0);
+      result.innerHTML = 'Score <b class="up-hi">' + r.score + '</b> &nbsp; ' + r.note + '<br>Total <b>' + sum + '</b> / ' + GAME * 100;
+      btnGo.textContent = pos === GAME - 1 ? 'Result →' : 'Next →';
+    } else if (pos === GAME - 1) finish();
+    else { pos++; render(); }
   }
   root.addEventListener('click', function (e) {
     var b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
     var act = b.getAttribute('data-act');
     if (act === 'go') go();
-    else if (act === 'reset') render();
-    else if (act === 'back' && pos > 0) { pos--; render(); }
+    else if (act === 'reset' && !over) render();
+    else if (act === 'back') { if (over) { over = false; pos = GAME - 1; render(); } else if (pos > 0) { pos--; render(); } }
     else if (act === 'index') root.classList.add('up-show-index');
     else if (act === 'close') root.classList.remove('up-show-index');
   });
 
-  // index tiles
+  // index: start a new game from the chosen puzzle
   var tiles = $('.up-tiles');
   ORDER.forEach(function (key) {
     var m = M[key], t = el('div', 'up-tile'), ic = S('svg', { viewBox: '0 0 34 34', fill: 'none', stroke: FG, 'stroke-width': 1.4 });
     m.icon(ic); t.appendChild(ic);
     t.appendChild(el('span', 'up-lbl', m.name)); t.appendChild(el('span', 'up-jp', m.jp));
     t.setAttribute('role', 'button'); t.tabIndex = 0;
-    var open = function () { hist.push(newEntry(key)); pos = hist.length - 1; root.classList.remove('up-show-index'); render(); };
+    var open = function () { root.classList.remove('up-show-index'); newGame(key); };
     t.addEventListener('click', open);
     t.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') open(); });
     tiles.appendChild(t);
   });
 
-  hist.push(newEntry(nextKey())); pos = 0;
-  var start = function () { render(); };
+  var start = function () { newGame(); };
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(start); else start();
 })();
 </script>
