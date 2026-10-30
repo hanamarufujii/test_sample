@@ -19,3 +19,15 @@ Reset = start this question over, Index = pick any puzzle.
 ## Notes
 - If a security plugin strips `<script>` from Raw HTML, the puzzle will not start.
 - The Crop puzzle uses a drawn placeholder scene until real photos are chosen.
+
+## Load from GitHub (no WordPress edits for updates)
+`uma-puzzle.js` is built from `uma-puzzle.html` (`python3 uma-fv/build.py`) and
+served by GitHub Pages from the `main` branch. The Raw HTML element then only needs:
+
+```html
+<div id="uma-puzzle"></div>
+<script src="https://hanamarufujii.github.io/test_sample/uma-fv/uma-puzzle.js" defer></script>
+```
+
+Pushing to `main` updates the live site within minutes (GitHub Pages caches ~10 min).
+`preview-2lines.html` checks this setup locally.

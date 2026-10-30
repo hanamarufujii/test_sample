@@ -1,0 +1,711 @@
+/* U-MA Design Puzzle — generated from uma-puzzle.html by build.py. Do not edit by hand. */
+(function () {
+  var root = document.getElementById('uma-puzzle');
+  if (!root) {
+    root = document.createElement('div'); root.id = 'uma-puzzle';
+    var me = document.currentScript; if (me && me.parentNode) me.parentNode.insertBefore(root, me); else document.body.appendChild(root);
+  }
+  if (root.getAttribute('data-ready') || root.getAttribute('data-shell')) return;
+  root.setAttribute('data-shell', '1');
+  root.setAttribute('aria-label', 'Design Puzzle');
+  if (!document.getElementById('uma-puzzle-font')) {
+    var l = document.createElement('link'); l.id = 'uma-puzzle-font'; l.rel = 'stylesheet'; l.href = "https://fonts.googleapis.com/css2?family=Jost:wght@400;500&display=swap";
+    document.head.appendChild(l);
+  }
+  if (!document.getElementById('uma-puzzle-style')) {
+    var st = document.createElement('style'); st.id = 'uma-puzzle-style'; st.textContent = "#uma-puzzle {\n  --fg: #111; --dim: #8c8c8c; --line: #e6e6e6; --soft: #f7f7f7; --red: #e60012;\n  --font: \"Futura\", \"Futura PT\", \"Jost\", \"Century Gothic\", sans-serif;\n  position: relative; box-sizing: border-box; width: 100%; max-width: 1200px; margin: 0 auto; padding: 32px 16px;\n  background: #fff; color: var(--fg); font-family: var(--font); font-size: 11px; font-weight: 400;\n  line-height: 1.7; letter-spacing: .14em; text-transform: uppercase; text-align: left;\n  -webkit-font-smoothing: antialiased; -webkit-user-select: none; user-select: none;\n}\n#uma-puzzle * { box-sizing: border-box; margin: 0; padding: 0; }\n#uma-puzzle svg { max-width: 100%; }\n#uma-puzzle .up-jp { text-transform: none; letter-spacing: .06em; color: var(--dim); font-size: 11px; }\n#uma-puzzle button {\n  all: unset; box-sizing: border-box; cursor: pointer; font-family: var(--font); font-size: 11px;\n  letter-spacing: .14em; text-transform: uppercase; color: var(--fg); line-height: 1;\n  border: 1px solid var(--line); padding: 13px 18px; min-height: 40px; display: inline-flex;\n  align-items: center; justify-content: center; gap: 8px; white-space: nowrap; transition: border-color .2s, background .2s, color .2s;\n}\n#uma-puzzle button:hover { border-color: var(--fg); }\n#uma-puzzle button:focus-visible { outline: 2px solid var(--red); outline-offset: 2px; }\n#uma-puzzle button[disabled] { opacity: .3; cursor: default; border-color: var(--line); }\n#uma-puzzle button.up-primary { background: var(--fg); color: #fff; border-color: var(--fg); min-width: 120px; }\n#uma-puzzle button.up-primary:hover { background: var(--red); border-color: var(--red); }\n#uma-puzzle button.up-link { border: 0; padding: 6px 0; min-height: 0; color: var(--dim); }\n#uma-puzzle button.up-link:hover { color: var(--red); }\n\n#uma-puzzle .up-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: \"info\" \"stage\" \"extra\" \"ctrl\"; gap: 16px; }\n#uma-puzzle .up-info { grid-area: info; display: flex; flex-direction: column; gap: 14px; }\n#uma-puzzle .up-stage { grid-area: stage; }\n#uma-puzzle .up-extra { grid-area: extra; }\n#uma-puzzle .up-extra:empty { display: none; }\n#uma-puzzle .up-ctrl { grid-area: ctrl; display: flex; flex-direction: column; gap: 14px; }\n#uma-puzzle .up-top { display: flex; justify-content: space-between; align-items: center; color: var(--dim); }\n#uma-puzzle .up-top b { color: var(--fg); font-weight: 500; }\n#uma-puzzle .up-top b i { color: var(--red); font-style: normal; }\n#uma-puzzle .up-no { color: var(--dim); }\n#uma-puzzle .up-no em { color: var(--red); font-style: normal; }\n#uma-puzzle .up-name { font-size: 22px; font-weight: 500; letter-spacing: .1em; line-height: 1.2; }\n#uma-puzzle .up-task { display: flex; flex-direction: column; gap: 4px; }\n#uma-puzzle .up-result { color: var(--dim); min-height: 1.7em; }\n#uma-puzzle .up-result b { color: var(--fg); font-weight: 500; }\n#uma-puzzle .up-result b.up-hi { color: var(--red); }\n#uma-puzzle .up-btns { display: flex; gap: 8px; align-items: center; }\n#uma-puzzle .up-btns .up-sp { flex: 1; }\n#uma-puzzle svg.up-svg { display: block; width: 100%; height: auto; border: 1px solid var(--line); background: #fff; touch-action: none; overflow: hidden; font-family: var(--font); }\n#uma-puzzle svg.up-svg text { text-transform: none; letter-spacing: 0; }\n#uma-puzzle svg .up-drag { cursor: grab; }\n#uma-puzzle svg .up-click { cursor: pointer; }\n#uma-puzzle .up-slider { display: grid; grid-template-columns: auto 1fr auto; gap: 14px; align-items: center; color: var(--dim); }\n#uma-puzzle input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 24px; background: transparent; cursor: pointer; border: 0; }\n#uma-puzzle input[type=range]::-webkit-slider-runnable-track { height: 1px; background: #cfcfcf; }\n#uma-puzzle input[type=range]::-moz-range-track { height: 1px; background: #cfcfcf; }\n#uma-puzzle input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--fg); margin-top: -7px; }\n#uma-puzzle input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: var(--fg); border: 0; }\n\n#uma-puzzle .up-index { position: absolute; inset: 0; background: #fff; z-index: 5; padding: 32px 16px; display: none; flex-direction: column; gap: 16px; overflow-y: auto; }\n#uma-puzzle.up-show-index .up-index { display: flex; }\n#uma-puzzle .up-tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); }\n#uma-puzzle .up-tile { background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 16px 4px; cursor: pointer; text-align: center; transition: background .2s; }\n#uma-puzzle .up-tile:hover { background: var(--soft); }\n#uma-puzzle .up-tile svg { width: 30px; height: 30px; overflow: visible; }\n#uma-puzzle .up-tile .up-lbl { font-size: 10px; font-weight: 500; }\n#uma-puzzle .up-tile .up-jp { font-size: 9px; }\n\n#uma-puzzle .up-final { border: 1px solid var(--line); padding: 28px 24px; display: flex; flex-direction: column; gap: 10px; }\n#uma-puzzle .up-big { font-size: 88px; font-weight: 400; letter-spacing: 0; line-height: 1; }\n#uma-puzzle .up-sub { color: var(--dim); }\n#uma-puzzle .up-sub em { color: var(--red); font-style: normal; }\n#uma-puzzle .up-sub b { color: var(--fg); font-weight: 500; }\n#uma-puzzle .up-rows { margin-top: 10px; border-top: 1px solid var(--line); }\n#uma-puzzle .up-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--line); color: var(--dim); }\n#uma-puzzle .up-row b { color: var(--fg); font-weight: 500; }\n\n@media (min-width: 900px) {\n  #uma-puzzle, #uma-puzzle .up-index { padding: 56px 32px; }\n  #uma-puzzle .up-grid {\n    grid-template-columns: 300px minmax(0, 1fr); grid-template-rows: auto 1fr auto;\n    grid-template-areas: \"info stage\" \"ctrl stage\" \". extra\"; column-gap: 56px; row-gap: 16px;\n  }\n  #uma-puzzle .up-ctrl { align-self: end; }\n  #uma-puzzle .up-name { font-size: 30px; }\n  #uma-puzzle .up-tile { padding: 28px 8px; }\n  #uma-puzzle .up-tile svg { width: 36px; height: 36px; }\n}\n@media (max-width: 420px) {\n  #uma-puzzle .up-tile .up-jp { display: none; }\n  #uma-puzzle .up-tile .up-lbl { font-size: 8px; letter-spacing: .08em; }\n  #uma-puzzle button { padding: 12px 12px; }\n  #uma-puzzle button.up-primary { min-width: 0; padding: 12px 20px; }\n}\n";
+    document.head.appendChild(st);
+  }
+  root.innerHTML = "  <div class=\"up-grid\">\n    <div class=\"up-info\">\n      <div class=\"up-top\"><b>Design Puzzle<i>.</i></b><button class=\"up-link\" data-act=\"index\">Index</button></div>\n      <div class=\"up-no\"></div>\n      <div><div class=\"up-name\"></div><div class=\"up-jp up-namejp\"></div></div>\n      <div class=\"up-task\"><div class=\"up-task-en\"></div><div class=\"up-jp up-task-jp\"></div></div>\n    </div>\n    <div class=\"up-stage\"></div>\n    <div class=\"up-extra\"></div>\n    <div class=\"up-ctrl\">\n      <div class=\"up-result\"></div>\n      <div class=\"up-btns\">\n        <button data-act=\"back\" aria-label=\"Back\">&larr; Back</button>\n        <button data-act=\"reset\" aria-label=\"Reset\">Reset</button>\n        <span class=\"up-sp\"></span>\n        <button class=\"up-primary\" data-act=\"go\">Check</button>\n      </div>\n    </div>\n  </div>\n  <div class=\"up-index\">\n    <div class=\"up-top\"><b>Index<i>.</i></b><button class=\"up-link\" data-act=\"close\">Close</button></div>\n    <div class=\"up-jp\">\u30c7\u30b6\u30a4\u30ca\u30fc\u306e\u76ee\u3068\u77e5\u8b58\u3092\u8a66\u305912\u306e\u30d1\u30ba\u30eb</div>\n    <div class=\"up-tiles\"></div>\n  </div>";
+})();
+(function () {
+  var root = document.getElementById('uma-puzzle');
+  if (!root || root.getAttribute('data-ready')) return;
+  root.setAttribute('data-ready', '1');
+
+  var NS = 'http://www.w3.org/2000/svg', W = 600, H = 400;
+  var FG = '#111', DIM = '#8c8c8c', LINE = '#e6e6e6', RED = '#e60012';
+  var PHI = (1 + Math.sqrt(5)) / 2, SILVER = Math.SQRT2;
+
+  // ---------- seeded random (so Back / Reset replay the same question) ----------
+  var SEED = 1;
+  function R() { SEED = SEED + 0x6D2B79F5 | 0; var t = Math.imul(SEED ^ SEED >>> 15, 1 | SEED); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }
+  function rand(a, b) { return a + R() * (b - a); }
+  function pick(a) { return a[Math.floor(R() * a.length)]; }
+  function shuffle(a) { a = a.slice(); for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(R() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+  // ---------- DOM helpers ----------
+  function S(tag, at, parent) { var e = document.createElementNS(NS, tag); for (var k in at) e.setAttribute(k, at[k]); if (parent) parent.appendChild(e); return e; }
+  function T(parent, x, y, text, fill, size, anchor, weight) { var t = S('text', { x: x, y: y, fill: fill || DIM, 'font-size': size || 10, 'text-anchor': anchor || 'start', 'font-weight': weight || 400 }, parent); t.textContent = text; return t; }
+  function el(tag, cls, html) { var e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+  function svgPoint(svg, e) { var p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+  function draggable(node, svg, ctx, h) {
+    node.addEventListener('pointerdown', function (e) {
+      if (ctx.locked) return;
+      e.preventDefault();
+      var p0 = svgPoint(svg, e);
+      if (h.start) h.start(p0);
+      function mv(ev) { var p = svgPoint(svg, ev); h.move(p.x - p0.x, p.y - p0.y, p); }
+      function up() { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); window.removeEventListener('pointercancel', up); if (h.end) h.end(); }
+      window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up); window.addEventListener('pointercancel', up);
+    });
+  }
+  function tap(node, ctx, fn) { node.addEventListener('pointerdown', function (e) { if (ctx.locked) return; fn(e); }); }
+
+  // ---------- color helpers ----------
+  function rgbStr(c) { return 'rgb(' + c.map(function (v) { return Math.round(clamp(v, 0, 255)); }).join(',') + ')'; }
+  function tint(rgb, t) { return rgb.map(function (v) { return Math.round(255 - (255 - v) * t); }); }
+  function hexRgb(h) { return [1, 3, 5].map(function (i) { return parseInt(h.slice(i, i + 2), 16); }); }
+  function hslRgb(h, s, l) { s /= 100; l /= 100; var k = function (n) { return (n + h / 30) % 12; }, a = s * Math.min(l, 1 - l); return [0, 8, 4].map(function (n) { return 255 * (l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1))); }); }
+  function lab(rgb) {
+    var c = rgb.map(function (v) { v /= 255; return v > 0.04045 ? Math.pow((v + 0.055) / 1.055, 2.4) : v / 12.92; });
+    var x = (c[0] * 0.4124 + c[1] * 0.3576 + c[2] * 0.1805) / 0.95047, y = c[0] * 0.2126 + c[1] * 0.7152 + c[2] * 0.0722, z = (c[0] * 0.0193 + c[1] * 0.1192 + c[2] * 0.9505) / 1.08883;
+    var f = function (t) { return t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116; }; x = f(x); y = f(y); z = f(z);
+    return [116 * y - 16, 500 * (x - y), 200 * (y - z)];
+  }
+  function deltaE(a, b) { var A = lab(a), B = lab(b); return Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]); }
+  function isLight(rgb) { return (rgb[0] * .299 + rgb[1] * .587 + rgb[2] * .114) / 255 > .6; }
+
+  // ---------- simple shapes (rot = degrees, around the shape's center) ----------
+  function shapeAttrs(s) {
+    var a = s.size, x = s.x, y = s.y, d;
+    if (s.type === 'circle') d = ['circle', { cx: x, cy: y, r: a / 2 }];
+    else if (s.type === 'square') d = ['rect', { x: x - a / 2, y: y - a / 2, width: a, height: a }];
+    else { var h = a * Math.sqrt(3) / 2; d = ['polygon', { points: x + ',' + (y - h / 2) + ' ' + (x + a / 2) + ',' + (y + h / 2) + ' ' + (x - a / 2) + ',' + (y + h / 2) }]; }
+    // triangles turn around their centroid, so every 120° looks identical
+    var py = s.type === 'tri' ? y + a * Math.sqrt(3) / 12 : y;
+    d[1].transform = s.rot ? 'rotate(' + s.rot + ' ' + x + ' ' + py + ')' : '';
+    return d;
+  }
+  function drawShape(parent, s, style) { var d = shapeAttrs(s), at = d[1]; for (var k in style) at[k] = style[k]; return S(d[0], at, parent); }
+  function iou(A, B) {
+    var k = .5, w = W * k, h = H * k;
+    function mask(list) {
+      var cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+      var c = cv.getContext('2d'); c.fillStyle = '#000';
+      list.forEach(function (s) {
+        var a = s.size * k, hh = a * Math.sqrt(3) / 2, tri = s.type === 'tri';
+        c.save(); c.translate(s.x * k, s.y * k + (tri ? hh / 6 : 0)); c.rotate((s.rot || 0) * Math.PI / 180); c.beginPath();
+        if (s.type === 'circle') c.arc(0, 0, a / 2, 0, Math.PI * 2);
+        else if (s.type === 'square') c.rect(-a / 2, -a / 2, a, a);
+        else { c.moveTo(0, -hh * 2 / 3); c.lineTo(a / 2, hh / 3); c.lineTo(-a / 2, hh / 3); c.closePath(); }
+        c.fill(); c.restore();
+      });
+      return c.getImageData(0, 0, w, h).data;
+    }
+    var a = mask(A), b = mask(B), inter = 0, uni = 0;
+    for (var i = 3; i < a.length; i += 4) { var p = a[i] > 127, q = b[i] > 127; if (p && q) inter++; if (p || q) uni++; }
+    return uni ? inter / uni : 0;
+  }
+  function chipRow(svg, items, ctx, y, onToggle) {
+    var cw = 58, gap = 14, x0 = (W - (items.length * cw + (items.length - 1) * gap)) / 2, on = [];
+    var chips = items.map(function (it, i) {
+      var g = S('g', { 'class': 'up-click' }, svg), x = x0 + i * (cw + gap);
+      S('rect', { x: x, y: y, width: cw, height: cw, fill: rgbStr(it.rgb), stroke: '#ddd' }, g);
+      var ring = S('rect', { x: x - 4, y: y - 4, width: cw + 8, height: cw + 8, fill: 'none', stroke: FG, 'stroke-width': 1.5, opacity: 0 }, g);
+      var t = T(g, x + cw / 2, y + cw + 20, it.id, DIM, 10, 'middle');
+      tap(g, ctx, function () {
+        var at = on.indexOf(it); if (at >= 0) on.splice(at, 1); else on.push(it);
+        ring.setAttribute('opacity', on.indexOf(it) >= 0 ? 1 : 0); t.setAttribute('fill', on.indexOf(it) >= 0 ? FG : DIM);
+        onToggle(on);
+      });
+      return { it: it, x: x };
+    });
+    return { on: on, mark: function (list) { chips.forEach(function (c) { if (list.indexOf(c.it) >= 0) S('rect', { x: c.x - 8, y: y - 8, width: cw + 16, height: cw + 16, fill: 'none', stroke: RED, 'stroke-dasharray': '3 3' }, svg); }); } };
+  }
+
+  // ================= PUZZLES =================
+  var M = {};
+
+  // --- Overlap shapes: 1st is easy, then it gets harder (more pieces, look-alikes, a decoy, rotation) ---
+  // [type, size, dx, dy, rotation]
+  var OVERLAP = [
+    [ // 1: two pieces
+      [['square', 110, 0, 30], ['tri', 140, 0, -78]],
+      [['circle', 120, 0, 45], ['circle', 80, 0, -50]],
+      [['circle', 100, 0, -30], ['tri', 90, 0, 45]]
+    ],
+    [ // 2: four pieces, same shapes in different sizes
+      [['circle', 130, 0, 60], ['circle', 80, 0, -40], ['tri', 34, -24, -82], ['tri', 34, 24, -82]],             // cat
+      [['square', 100, 0, 40], ['square', 60, 0, -48], ['circle', 26, 0, -88], ['circle', 50, 0, 100]]          // robot
+    ],
+    [ // 3: three or four pieces + a decoy
+      [['square', 110, 0, 40], ['tri', 140, 0, -68], ['circle', 56, 80, -90]],                                  // house + sun
+      [['circle', 120, 0, 55], ['circle', 80, 0, -40], ['square', 50, 0, -95]],                                 // snowman
+      [['tri', 150, 0, -20], ['square', 40, 0, 60], ['circle', 40, 0, -85]]                                    // tree
+    ],
+    [ // 4: rotated pieces (tap to rotate) + a decoy
+      [['circle', 110, 10, 0], ['tri', 70, -60, -10, 90], ['tri', 40, 10, -62]],                                  // fish
+      [['tri', 100, 0, 32, 180], ['circle', 90, 0, -25]],                                                       // ice cream
+      [['square', 100, -10, -20, 45], ['tri', 40, -10, 52, 180], ['circle', 22, -10, 88]]                       // kite
+    ],
+    [ // 5+: five or six pieces + rotation + a decoy
+      [['tri', 70, 0, -68], ['square', 70, 0, -5], ['square', 70, 0, 60], ['tri', 50, -45, 80], ['tri', 50, 45, 80], ['tri', 40, 0, 92, 180]], // rocket
+      [['circle', 110, 0, 20], ['circle', 60, 50, -40], ['tri', 30, 84, -44, 90], ['tri', 60, -60, 0, 270], ['tri', 26, 45, -75]],             // bird
+      [['tri', 140, 0, 45, 180], ['tri', 110, -5, -18], ['tri', 70, 50, 0], ['square', 20, -5, -72], ['circle', 50, 95, -90]]                // sailboat
+    ]
+  ];
+  var SYM = { circle: 360, square: 90, tri: 120 };
+  M.shape = {
+    name: 'Overlap', jp: '図形をかさねる', cat: 'Form',
+    task: 'Overlap the shapes to match the silhouette', taskJp: '図形を指でつまんで運び、シルエットと同じ形にする。トンと触ると回る',
+    icon: function (g) { S('rect', { x: 2, y: 12, width: 18, height: 18 }, g); S('circle', { cx: 22, cy: 14, r: 10 }, g); },
+    setup: function (svg, level, ctx) {
+      var stage = level === 0 ? 0 : level === 1 ? 1 + Math.floor(R() * 2) : 3 + Math.floor(R() * 2), comp = pick(OVERLAP[stage]), cx = 170, cy = 200, DIV = 340;
+      var target = comp.map(function (c) { return { type: c[0], size: c[1], x: cx + c[2], y: cy + c[3], rot: c[4] || 0 }; });
+      target.forEach(function (s) { drawShape(svg, s, { fill: '#e9e9e9' }); });
+      S('line', { x1: DIV, y1: 24, x2: DIV, y2: 376, stroke: LINE }, svg);
+      // pieces: the target's shapes (unrotated) + a decoy from stage 3 on
+      var kinds = target.map(function (t) { return { type: t.type, size: t.size }; });
+      if (stage >= 2) {
+        var dk; do { dk = { type: pick(['circle', 'square', 'tri']), size: Math.round(rand(30, 110)) }; }
+        while (kinds.some(function (k) { return k.type === dk.type && Math.abs(k.size - dk.size) < 18; }));
+        kinds.push(dk);
+      }
+      kinds = shuffle(kinds);
+      // shelf-pack the tray
+      var tx = DIV + 14, tw = W - tx - 10, px = tx, py = 20, row = 0;
+      var pieces = kinds.map(function (k) {
+        var bw = k.size, bh = k.type === 'tri' ? k.size * Math.sqrt(3) / 2 : k.size;
+        if (px + bw > tx + tw) { px = tx; py += row + 12; row = 0; }
+        var p = { type: k.type, size: k.size, rot: 0, x: px + bw / 2, y: py + bh / 2 };
+        px += bw + 12; row = Math.max(row, bh); return p;
+      });
+      var layer = S('g', {}, svg);
+      function placed() { return pieces.filter(function (p) { return p.x < DIV; }); }
+      function snap(p) {
+        target.forEach(function (t) {
+          if (t.type !== p.type || t.size !== p.size) return;
+          var da = ((p.rot - t.rot) % SYM[t.type] + SYM[t.type]) % SYM[t.type];
+          if (da !== 0) return;
+          if (Math.hypot(p.x - t.x, p.y - t.y) > 18) return;
+          var taken = pieces.some(function (q) { return q !== p && q.x === t.x && q.y === t.y && q.type === t.type; });
+          if (!taken) { p.x = t.x; p.y = t.y; }
+        });
+      }
+      function check() { if (iou(target, placed()) >= .985) ctx.solved(); }
+      pieces.forEach(function (p) {
+        var node = drawShape(layer, p, { fill: 'rgba(17,17,17,.07)', stroke: FG, 'class': 'up-drag' }), ox, oy, moved;
+        function draw() { var at = shapeAttrs(p)[1]; for (var k in at) node.setAttribute(k, at[k]); }
+        draggable(node, svg, ctx, {
+          start: function () { ox = p.x; oy = p.y; moved = 0; layer.appendChild(node); },
+          move: function (dx, dy) { moved = Math.max(moved, Math.hypot(dx, dy)); p.x = clamp(ox + dx, 0, W); p.y = clamp(oy + dy, 0, H); draw(); },
+          end: function () {
+            if (moved < 4) { p.x = ox; p.y = oy; if (p.type !== 'circle') p.rot = (p.rot + 15) % 360; }   // a tap rotates
+            snap(p); draw(); check();
+          }
+        });
+      });
+      return function () {
+        target.forEach(function (s) { drawShape(svg, s, { fill: 'none', stroke: RED, 'stroke-dasharray': '4 4' }); });
+        var v = iou(target, placed());
+        return { score: Math.round(clamp((v - .4) / .6 * 100, 0, 100)), note: 'Match <b>' + (v * 100).toFixed(1) + '%</b>' };
+      };
+    }
+  };
+
+  // --- CMYK (subtractive) and RGB (additive) films ---
+  function filmMode(o) {
+    return {
+      name: o.name, jp: o.jp, cat: 'Color', task: o.task, taskJp: o.taskJp, icon: o.icon,
+      setup: function (svg, level, ctx) {
+        var n = level === 0 ? 2 : level === 1 ? pick([2, 3]) : 3;
+        var answer = shuffle(o.fams).slice(0, n).map(function (f) { return pick(o.films.filter(function (x) { return x.fam === f; })); });
+        var tColor = o.mix(answer);
+        T(svg, 40, 22, 'TARGET'); T(svg, 310, 22, 'YOU');
+        S('rect', { x: 40, y: 30, width: 250, height: 230, fill: rgbStr(tColor), stroke: LINE }, svg);
+        var you = S('rect', { x: 310, y: 30, width: 250, height: 230, fill: rgbStr(o.mix([])), stroke: LINE }, svg);
+        var row = chipRow(svg, o.films, ctx, 292, function (on) { you.setAttribute('fill', rgbStr(o.mix(on))); });
+        return function () {
+          row.mark(answer);
+          var d = deltaE(tColor, o.mix(row.on));
+          return { score: Math.round(clamp(100 - d * 3, 0, 100)), note: 'ΔE <b>' + d.toFixed(1) + '</b> &nbsp; Answer <b>' + answer.map(function (f) { return f.id; }).join(o.join) + '</b>' };
+        };
+      }
+    };
+  }
+  var C100 = [0, 160, 233], M100 = [228, 0, 127], Y100 = [255, 241, 0];
+  M.cmyk = filmMode({
+    name: 'CMYK', jp: '色をかさねる（減法混色）', task: 'Stack ink films to match the target', taskJp: 'インクのフィルムを重ねて（乗算）、同じ色をつくる。重ねるほど暗くなる',
+    icon: function (g) { S('circle', { cx: 11, cy: 12, r: 9 }, g); S('circle', { cx: 23, cy: 12, r: 9 }, g); S('circle', { cx: 17, cy: 22, r: 9 }, g); },
+    fams: ['C', 'M', 'Y', 'K'], join: ' × ',
+    films: [{ id: 'C100', fam: 'C', rgb: C100 }, { id: 'M100', fam: 'M', rgb: M100 }, { id: 'Y100', fam: 'Y', rgb: Y100 }, { id: 'C50', fam: 'C', rgb: tint(C100, .5) }, { id: 'M50', fam: 'M', rgb: tint(M100, .5) }, { id: 'Y50', fam: 'Y', rgb: tint(Y100, .5) }, { id: 'K30', fam: 'K', rgb: [190, 190, 190] }],
+    mix: function (list) { return list.reduce(function (c, f) { return c.map(function (v, i) { return v * f.rgb[i] / 255; }); }, [255, 255, 255]); }
+  });
+  M.rgb = filmMode({
+    name: 'RGB', jp: '光を足す（加法混色）', task: 'Add lights to match the target', taskJp: '赤・緑・青の光を足して、同じ色をつくる。足すほど明るくなる',
+    icon: function (g) { S('circle', { cx: 17, cy: 11, r: 9 }, g); S('circle', { cx: 11, cy: 22, r: 9 }, g); S('circle', { cx: 23, cy: 22, r: 9 }, g); },
+    fams: ['R', 'G', 'B'], join: ' + ',
+    films: [{ id: 'R100', fam: 'R', rgb: [255, 0, 0] }, { id: 'G100', fam: 'G', rgb: [0, 255, 0] }, { id: 'B100', fam: 'B', rgb: [0, 0, 255] }, { id: 'R50', fam: 'R', rgb: [128, 0, 0] }, { id: 'G50', fam: 'G', rgb: [0, 128, 0] }, { id: 'B50', fam: 'B', rgb: [0, 0, 128] }],
+    mix: function (list) { return list.reduce(function (c, f) { return c.map(function (v, i) { return Math.min(255, v + f.rgb[i]); }); }, [0, 0, 0]); }
+  });
+
+  // --- Theme palette: 3 colors (top → bottom) + balance ---
+  var THEMES = [
+    { en: 'Beer', jp: 'ビール', colors: ['#f2e6c4', '#e9a82a', '#b9690f'], ratio: [.2, .5, .3], decoys: ['#ffffff', '#ffe14d', '#7a3e0a'] },
+    { en: 'Winter sea', jp: '冬の海', colors: ['#9aa5ad', '#2d4654', '#d5dde0'], ratio: [.4, .45, .15], decoys: ['#7ec8f0', '#0077b6', '#ffffff'] },
+    { en: 'Desert', jp: '砂漠', colors: ['#a9c9dc', '#ddb277', '#9c6236'], ratio: [.35, .45, .2], decoys: ['#4fa8ff', '#f3d34a', '#5a3a22'] },
+    { en: 'Sunset sea', jp: '夕焼けの海', colors: ['#f4a259', '#d9543c', '#2b3a55'], ratio: [.5, .15, .35], decoys: ['#ffd23f', '#ff1f1f', '#0a6cff'] },
+    { en: 'Iced latte', jp: 'アイスラテ', colors: ['#f1e9dc', '#b88a5c', '#3e2418'], ratio: [.35, .25, .4], decoys: ['#ffffff', '#e8c07a', '#000000'] },
+    { en: 'Cherry blossom', jp: '桜', colors: ['#cfe3f0', '#f4c6d0', '#4a3b3e'], ratio: [.45, .4, .15], decoys: ['#87ceeb', '#ff69b4', '#000000'] },
+    { en: 'Night city', jp: '夜の街', colors: ['#1b2238', '#f2c14e', '#3a3d45'], ratio: [.55, .15, .3], decoys: ['#000000', '#ffff00', '#808080'] },
+    { en: 'Matcha latte', jp: '抹茶ラテ', colors: ['#eef0e2', '#9fb46a', '#f3efe3'], ratio: [.2, .45, .35], decoys: ['#59c135', '#ffffff', '#6b7a2e'] }
+  ];
+  M.palette = {
+    name: 'Palette', jp: 'テーマの配色', cat: 'Color', task: '', taskJp: '',
+    icon: function (g) { S('rect', { x: 9, y: 1, width: 16, height: 7 }, g); S('rect', { x: 9, y: 8, width: 16, height: 15 }, g); S('rect', { x: 9, y: 23, width: 16, height: 10 }, g); },
+    setup: function (svg, level, ctx) {
+      var th = pick(THEMES), BX = 230, BY = 24, BW = 140, BH = 352, chosen = [], d = [1 / 3, 2 / 3];
+      ctx.setTask('Pick 3 colors for “' + th.en + '” and set the balance', '「' + th.jp + '」の3色を上から順に選び、境目の線を動かして配分を決める');
+      T(svg, BX, 16, 'YOU');
+      var segs = [0, 1, 2].map(function () { return S('rect', { x: BX, width: BW }, svg); });
+      S('rect', { x: BX, y: BY, width: BW, height: BH, fill: 'none', stroke: '#d8d8d8' }, svg);
+      var handles = [0, 1].map(function (i) {
+        var g = S('g', { 'class': 'up-drag' }, svg), o;
+        S('rect', { x: BX - 24, y: -16, width: BW + 48, height: 32, fill: 'transparent' }, g);
+        S('line', { x1: BX - 10, y1: 0, x2: BX + BW + 10, y2: 0, stroke: FG }, g);
+        S('rect', { x: BX + BW + 10, y: -6, width: 12, height: 12, fill: FG }, g);
+        draggable(g, svg, ctx, { start: function () { o = d[i]; }, move: function (dx, dy) { d[i] = i === 0 ? clamp(o + dy / BH, .04, d[1] - .04) : clamp(o + dy / BH, d[0] + .04, .96); draw(); } });
+        return g;
+      });
+      function draw() {
+        var e = [0, d[0], d[1], 1];
+        segs.forEach(function (s, i) {
+          s.setAttribute('y', BY + e[i] * BH); s.setAttribute('height', (e[i + 1] - e[i]) * BH);
+          s.setAttribute('fill', chosen[i] || '#fafafa'); s.setAttribute('stroke', chosen[i] ? 'none' : '#e0e0e0'); s.setAttribute('stroke-dasharray', '3 3');
+        });
+        handles.forEach(function (h, i) { h.setAttribute('transform', 'translate(0,' + (BY + d[i] * BH) + ')'); });
+      }
+      var chips = shuffle(th.colors.concat(th.decoys)).map(function (hex, k) {
+        var x = 430 + (k % 2) * 86, y = 30 + Math.floor(k / 2) * 116, s = 70, g = S('g', { 'class': 'up-click' }, svg);
+        S('rect', { x: x, y: y, width: s, height: s, fill: hex, stroke: '#ddd' }, g);
+        var ring = S('rect', { x: x - 4, y: y - 4, width: s + 8, height: s + 8, fill: 'none', stroke: FG, 'stroke-width': 1.5, opacity: 0 }, g);
+        var num = T(g, x + s / 2, y + s / 2 + 5, '', isLight(hexRgb(hex)) ? FG : '#fff', 14, 'middle');
+        tap(g, ctx, function () {
+          var at = chosen.indexOf(hex); if (at >= 0) chosen.splice(at, 1); else if (chosen.length < 3) chosen.push(hex);
+          chips.forEach(function (c) { var i = chosen.indexOf(c.hex); c.ring.setAttribute('opacity', i >= 0 ? 1 : 0); c.num.textContent = i >= 0 ? String(i + 1) : ''; });
+          draw();
+        });
+        return { hex: hex, ring: ring, num: num, x: x, y: y, s: s };
+      });
+      draw();
+      return function () {
+        T(svg, 60, 16, 'ANSWER');
+        var y = BY;
+        th.colors.forEach(function (c, i) { var h = th.ratio[i] * BH; S('rect', { x: 60, y: y, width: 110, height: h, fill: c }, svg); T(svg, 178, y + h / 2 + 4, Math.round(th.ratio[i] * 100) + '%'); y += h; });
+        chips.forEach(function (c) { if (th.colors.indexOf(c.hex) >= 0) S('rect', { x: c.x - 8, y: c.y - 8, width: c.s + 16, height: c.s + 16, fill: 'none', stroke: RED, 'stroke-dasharray': '3 3' }, svg); });
+        var mine = [d[0], d[1] - d[0], 1 - d[1]];
+        var color = th.colors.reduce(function (s, c, i) { return s + (chosen[i] ? clamp(100 - deltaE(hexRgb(chosen[i]), hexRgb(c)) * 4, 0, 100) : 0); }, 0) / 3;
+        var bal = clamp(100 - mine.reduce(function (s, r, i) { return s + Math.abs(r - th.ratio[i]); }, 0) * 200, 0, 100);
+        return { score: Math.round(color * .6 + bal * .4), note: 'Color <b>' + Math.round(color) + '</b> &nbsp; Balance <b>' + Math.round(bal) + '</b>' };
+      };
+    }
+  };
+
+  // --- Color scheme rules ---
+  var RULES = {
+    comp: { en: 'Complementary', jp: '補色', off: [180], def: 'Base + 180°' },
+    triad: { en: 'Triad', jp: 'トライアド', off: [120, 240], def: 'Base + 120° / 240°' },
+    analog: { en: 'Analogous', jp: '類似色', off: [30, 330], def: 'Base ± 30°' },
+    split: { en: 'Split complementary', jp: 'スプリット・コンプリメンタリー', off: [150, 210], def: 'Base + 150° / 210°' },
+    sat: { en: 'Same saturation', jp: '同じ彩度', def: 'Same saturation, different hue' }
+  };
+  M.scheme = {
+    name: 'Scheme', jp: '配色ルール', cat: 'Color', task: '', taskJp: '',
+    icon: function (g) { S('circle', { cx: 17, cy: 17, r: 14 }, g); S('circle', { cx: 17, cy: 3, r: 3, fill: FG }, g); S('circle', { cx: 10, cy: 29, r: 3, fill: FG }, g); S('circle', { cx: 24, cy: 29, r: 3, fill: FG }, g); },
+    setup: function (svg, level, ctx) {
+      var key = level === 0 ? 'comp' : level === 1 ? pick(['triad', 'analog', 'sat']) : 'split', rule = RULES[key];
+      var h0 = Math.round(rand(0, 360)), S0 = key === 'sat' ? pick([35, 60, 85]) : 70, items = [], correct = [];
+      if (key === 'sat') {
+        [rand(70, 140), rand(190, 290)].forEach(function (o, i) { var it = { h: (h0 + o) % 360, s: S0, l: i ? 45 : 62 }; items.push(it); correct.push(it); });
+        var others = [35, 60, 85].filter(function (v) { return v !== S0; }).concat([12, 100]);
+        for (var i = 0; i < 4; i++) items.push({ h: (h0 + rand(0, 360)) % 360, s: others[i % others.length], l: pick([45, 55, 62]) });
+      } else {
+        rule.off.forEach(function (o) { var it = { h: (h0 + o) % 360, s: 70, l: 55 }; items.push(it); correct.push(it); });
+        var pool = shuffle([45, 60, 90, 120, 150, 180, 210, 240, 270, 300, 315].filter(function (o) { return rule.off.every(function (c) { var d = Math.abs(o - c) % 360; return Math.min(d, 360 - d) > 20; }); }));
+        for (var j = 0; items.length < 6; j++) items.push({ h: (h0 + pool[j]) % 360, s: 70, l: 55 });
+      }
+      items = shuffle(items);
+      ctx.setTask('Pick the ' + rule.en + ' colors (' + correct.length + ')', '「' + rule.jp + '」になる色を ' + correct.length + ' つ選ぶ');
+      // hue ring with the base color
+      var cx = 150, cy = 200, r = 120;
+      for (var a = 0; a < 360; a += 5) { var t0 = (a - 90) * Math.PI / 180, t1 = (a + 5.5 - 90) * Math.PI / 180; S('path', { d: 'M' + (cx + Math.cos(t0) * r) + ' ' + (cy + Math.sin(t0) * r) + ' A' + r + ' ' + r + ' 0 0 1 ' + (cx + Math.cos(t1) * r) + ' ' + (cy + Math.sin(t1) * r), stroke: rgbStr(hslRgb(a, 70, 55)), 'stroke-width': 8, fill: 'none' }, svg); }
+      var tb = (h0 - 90) * Math.PI / 180;
+      S('circle', { cx: cx, cy: cy, r: 64, fill: rgbStr(hslRgb(h0, S0, 55)) }, svg);
+      S('circle', { cx: cx + Math.cos(tb) * r, cy: cy + Math.sin(tb) * r, r: 9, fill: rgbStr(hslRgb(h0, 70, 55)), stroke: FG, 'stroke-width': 2 }, svg);
+      T(svg, cx, cy + 4, 'BASE', isLight(hslRgb(h0, S0, 55)) ? FG : '#fff', 10, 'middle');
+      var on = [];
+      var chips = items.map(function (it, k) {
+        var x = 340 + (k % 3) * 82, y = 80 + Math.floor(k / 3) * 130, s = 66, g = S('g', { 'class': 'up-click' }, svg);
+        S('rect', { x: x, y: y, width: s, height: s, fill: rgbStr(hslRgb(it.h, it.s, it.l)) }, g);
+        var ring = S('rect', { x: x - 4, y: y - 4, width: s + 8, height: s + 8, fill: 'none', stroke: FG, 'stroke-width': 1.5, opacity: 0 }, g);
+        tap(g, ctx, function () { var at = on.indexOf(it); if (at >= 0) on.splice(at, 1); else on.push(it); ring.setAttribute('opacity', at >= 0 ? 0 : 1); });
+        return { it: it, x: x, y: y, s: s };
+      });
+      return function () {
+        chips.forEach(function (c) { if (correct.indexOf(c.it) >= 0) S('rect', { x: c.x - 8, y: c.y - 8, width: c.s + 16, height: c.s + 16, fill: 'none', stroke: RED, 'stroke-dasharray': '3 3' }, svg); });
+        if (key !== 'sat') correct.forEach(function (it) { var t = (it.h - 90) * Math.PI / 180; S('circle', { cx: cx + Math.cos(t) * r, cy: cy + Math.sin(t) * r, r: 9, fill: 'none', stroke: RED, 'stroke-width': 2 }, svg); });
+        var hit = on.filter(function (it) { return correct.indexOf(it) >= 0; }).length, miss = on.length - hit;
+        return { score: Math.round(clamp((hit - miss) / correct.length, 0, 1) * 100), note: rule.jp + ' = <b>' + rule.def + '</b>' };
+      };
+    }
+  };
+
+  // --- Golden / silver ratio ---
+  function ratioMode(r, name, jp, rl, icon) {
+    return {
+      name: name, jp: jp, cat: 'Form', task: '', taskJp: '', icon: icon,
+      setup: function (svg, level, ctx) {
+        function far(f) { var v; do { v = f(); } while (Math.abs(v - r) / r < .15); return v; }
+        function handle() { var g = S('g', { 'class': 'up-drag' }, svg); S('circle', { cx: 0, cy: 0, r: 26, fill: 'transparent' }, g); S('rect', { x: -6, y: -6, width: 12, height: 12, fill: FG }, g); return g; }
+        var measure, reveal, o;
+        if (level === 1) {
+          ctx.setTask('Divide the line at 1 : ' + rl, '線を ' + jp + '（1 : ' + rl + '）で分割する');
+          var x1 = 60, x2 = 540, y = 200, L = x2 - x1, p;
+          do { p = x1 + rand(.08, .92) * L; } while (Math.abs(Math.max(p - x1, x2 - p) / Math.min(p - x1, x2 - p) - r) / r < .15);
+          S('line', { x1: x1, y1: y, x2: x2, y2: y, stroke: FG }, svg);
+          [x1, x2].forEach(function (x) { S('line', { x1: x, y1: y - 12, x2: x, y2: y + 12, stroke: FG }, svg); });
+          var tick = S('line', { y1: y - 20, y2: y + 20, stroke: FG }, svg), hd = handle();
+          var draw1 = function () { tick.setAttribute('x1', p); tick.setAttribute('x2', p); hd.setAttribute('transform', 'translate(' + p + ',' + y + ')'); };
+          draw1();
+          draggable(hd, svg, ctx, { start: function () { o = p; }, move: function (dx) { p = clamp(o + dx, x1 + 10, x2 - 10); draw1(); } });
+          measure = function () { return Math.max(p - x1, x2 - p) / Math.min(p - x1, x2 - p); };
+          reveal = function () { [x1 + L / (1 + r), x2 - L / (1 + r)].forEach(function (x) { S('line', { x1: x, y1: y - 30, x2: x, y2: y + 30, stroke: RED, 'stroke-dasharray': '3 3' }, svg); }); };
+        } else if (level === 0) {
+          ctx.setTask('Make a 1 : ' + rl + ' rectangle', '横長の ' + jp + '（1 : ' + rl + '）の長方形をつくる');
+          var X0 = 70, hh = 150, Y0 = (H - hh) / 2, w = far(function () { return rand(70, 470) / hh; }) * hh;
+          var rect = S('rect', { x: X0, y: Y0, height: hh, fill: 'rgba(17,17,17,.03)', stroke: FG }, svg), h0 = handle();
+          var draw0 = function () { rect.setAttribute('width', w); h0.setAttribute('transform', 'translate(' + (X0 + w) + ',' + (Y0 + hh / 2) + ')'); };
+          draw0();
+          draggable(h0, svg, ctx, { start: function () { o = w; }, move: function (dx) { w = clamp(o + dx, 40, 500); draw0(); } });
+          measure = function () { return w / hh; };
+          reveal = function () { S('rect', { x: X0, y: Y0, width: hh * r, height: hh, fill: 'none', stroke: RED, 'stroke-dasharray': '4 4' }, svg); };
+        } else {
+          ctx.setTask('Make a 1 : ' + rl + ' portrait rectangle', '縦長の ' + jp + '（1 : ' + rl + '）の長方形をつくる');
+          var ww = 140, X2 = (W - ww) / 2, Y2 = 25, h2 = far(function () { return rand(60, 345) / ww; }) * ww;
+          var rect2 = S('rect', { x: X2, y: Y2, width: ww, fill: 'rgba(17,17,17,.03)', stroke: FG }, svg), hd2 = handle();
+          var draw2 = function () { rect2.setAttribute('height', h2); hd2.setAttribute('transform', 'translate(' + (X2 + ww / 2) + ',' + (Y2 + h2) + ')'); };
+          draw2();
+          draggable(hd2, svg, ctx, { start: function () { o = h2; }, move: function (dx, dy) { h2 = clamp(o + dy, 40, 350); draw2(); } });
+          measure = function () { return h2 / ww; };
+          reveal = function () { S('rect', { x: X2, y: Y2, width: ww, height: ww * r, fill: 'none', stroke: RED, 'stroke-dasharray': '4 4' }, svg); };
+        }
+        return function () {
+          reveal();
+          var u = measure(), err = Math.abs(u - r) / r;
+          return { score: Math.round(clamp(100 - err * 400, 0, 100)), note: 'You <b>1 : ' + u.toFixed(3) + '</b> &nbsp; Target <b>1 : ' + r.toFixed(3) + '</b>' };
+        };
+      }
+    };
+  }
+  M.golden = ratioMode(PHI, 'Golden', '黄金比', '1.618', function (g) { S('rect', { x: 0, y: 6, width: 34, height: 21 }, g); S('line', { x1: 21, y1: 6, x2: 21, y2: 27 }, g); });
+  M.silver = ratioMode(SILVER, 'Silver', '白銀比', '1.414', function (g) { S('rect', { x: 5, y: 1, width: 24, height: 34 }, g); S('line', { x1: 5, y1: 18, x2: 29, y2: 18 }, g); });
+
+  // --- Fibonacci tiling ---
+  M.fib = {
+    name: 'Fibonacci', jp: 'フィボナッチ', cat: 'Form',
+    task: 'Fill the frame with the Fibonacci squares', taskJp: '1・1・2・3・5・8 の正方形で、枠をすき間なく埋める',
+    icon: function (g) { S('rect', { x: 0, y: 6, width: 21, height: 21 }, g); S('rect', { x: 21, y: 6, width: 13, height: 13 }, g); S('rect', { x: 21, y: 19, width: 8, height: 8 }, g); },
+    setup: function (svg, level, ctx) {
+      var sizes = [[1, 1, 2, 3], [1, 1, 2, 3, 5], [1, 1, 2, 3, 5, 8]][level], u = [40, 34, 24][level];
+      var turn = Math.floor(R() * 4), rx = 0, ry = 0, rw = 1, rh = 1, canon = [{ x: 0, y: 0, s: 1 }];
+      for (var i = 1; i < sizes.length; i++) {
+        var s = sizes[i], d = (i - 1 + turn) % 4;
+        if (d === 0) { canon.push({ x: rx + rw, y: ry, s: s }); rw += s; }
+        else if (d === 1) { canon.push({ x: rx, y: ry + rh, s: s }); rh += s; }
+        else if (d === 2) { canon.push({ x: rx - s, y: ry, s: s }); rx -= s; rw += s; }
+        else { canon.push({ x: rx, y: ry - s, s: s }); ry -= s; rh += s; }
+      }
+      var bx = 24, by = Math.round((H - rh * u) / 2);
+      S('rect', { x: bx, y: by, width: rw * u, height: rh * u, fill: '#fafafa', stroke: DIM, 'stroke-dasharray': '2 3' }, svg);
+      for (var a = 1; a < rw; a++) S('line', { x1: bx + a * u, y1: by, x2: bx + a * u, y2: by + rh * u, stroke: '#efefef' }, svg);
+      for (var b = 1; b < rh; b++) S('line', { x1: bx, y1: by + b * u, x2: bx + rw * u, y2: by + b * u, stroke: '#efefef' }, svg);
+      T(svg, bx, by - 10, rw + ' × ' + rh);
+      var tx = 356, tw = 236, cx = tx, cy = 12, row = 0;
+      var pieces = sizes.slice().sort(function (p, q) { return q - p; }).map(function (s) {
+        var px = s * u; if (cx + px > tx + tw) { cx = tx; cy += row + 6; row = 0; }
+        var p = { s: s, x: cx, y: cy }; cx += px + 6; row = Math.max(row, px); return p;
+      });
+      var layer = S('g', {}, svg);
+      pieces.forEach(function (p) {
+        var node = S('rect', { width: p.s * u, height: p.s * u, fill: 'rgba(17,17,17,.06)', stroke: FG, 'class': 'up-drag' }, layer);
+        var t = T(layer, 0, 0, String(p.s), FG, 10, 'middle'); t.style.pointerEvents = 'none';
+        function draw() { node.setAttribute('x', p.x); node.setAttribute('y', p.y); t.setAttribute('x', p.x + p.s * u / 2); t.setAttribute('y', p.y + p.s * u / 2 + 4); }
+        draw();
+        var ox, oy;
+        draggable(node, svg, ctx, {
+          start: function () { ox = p.x; oy = p.y; layer.appendChild(node); layer.appendChild(t); },
+          move: function (dx, dy) { p.x = clamp(ox + dx, 0, W - p.s * u); p.y = clamp(oy + dy, 0, H - p.s * u); draw(); },
+          end: function () { p.x = bx + Math.round((p.x - bx) / u) * u; p.y = by + Math.round((p.y - by) / u) * u; draw(); }
+        });
+      });
+      return function () {
+        var grid = []; for (var j = 0; j < rh; j++) { grid.push([]); for (var k = 0; k < rw; k++) grid[j].push(0); }
+        pieces.forEach(function (p) {
+          var gx = Math.round((p.x - bx) / u), gy = Math.round((p.y - by) / u);
+          for (var j = 0; j < p.s; j++) for (var k = 0; k < p.s; k++) { var X = gx + k, Y = gy + j; if (X >= 0 && Y >= 0 && X < rw && Y < rh) grid[Y][X]++; }
+        });
+        var ok = 0; grid.forEach(function (rr) { rr.forEach(function (v) { if (v === 1) ok++; }); });
+        canon.forEach(function (c) { S('rect', { x: bx + (c.x - rx) * u, y: by + (c.y - ry) * u, width: c.s * u, height: c.s * u, fill: 'none', stroke: RED, 'stroke-dasharray': '3 3' }, svg); });
+        return { score: Math.round(ok / (rw * rh) * 100), note: 'Filled <b>' + ok + ' / ' + rw * rh + '</b>' };
+      };
+    }
+  };
+
+  // --- Layout frame ---
+  var LAYOUTS = [
+    { n: 3, els: [['photo', 0, 3, 20, 160], ['title', 0, 2, 196, 24], ['text', 0, 2, 236, 100], ['photo', 2, 1, 196, 60]] },
+    { n: 2, els: [['title', 0, 2, 20, 34], ['photo', 1, 1, 74, 220], ['text', 0, 1, 74, 140]] },
+    { n: 4, els: [['photo', 1, 3, 20, 200], ['title', 0, 3, 236, 26], ['text', 0, 2, 278, 62], ['text', 3, 1, 236, 104]] },
+    { n: 3, els: [['title', 0, 3, 20, 30], ['photo', 0, 1, 66, 120], ['photo', 1, 2, 66, 120], ['text', 0, 3, 202, 120]] },
+    { n: 2, els: [['photo', 0, 2, 20, 170], ['title', 0, 1, 206, 28], ['text', 1, 1, 206, 130]] },
+    { n: 4, els: [['title', 1, 3, 20, 26], ['photo', 0, 2, 62, 150], ['photo', 2, 2, 62, 70], ['text', 2, 2, 148, 64], ['text', 0, 4, 230, 100]] }
+  ];
+  function drawEl(p, type, w, h) {
+    if (type === 'photo') { S('rect', { width: w, height: h, fill: '#e4e4e4' }, p); S('line', { x1: 0, y1: 0, x2: w, y2: h, stroke: '#cfcfcf' }, p); S('line', { x1: w, y1: 0, x2: 0, y2: h, stroke: '#cfcfcf' }, p); }
+    else if (type === 'title') S('rect', { width: w, height: h, fill: FG }, p);
+    else { S('rect', { width: w, height: h, fill: 'transparent' }, p); for (var y = 3; y < h; y += 10) S('line', { x1: 0, y1: y, x2: y + 10 >= h ? w * .6 : w, y2: y, stroke: '#9a9a9a', 'stroke-width': 3 }, p); }
+  }
+  M.layout = {
+    name: 'Layout', jp: 'レイアウトフレーム', cat: 'Editorial',
+    task: 'Place the elements on the grid like the target', taskJp: 'お手本どおりに、要素をグリッドへ配置する',
+    icon: function (g) { S('rect', { x: 4, y: 0, width: 26, height: 34 }, g); S('line', { x1: 13, y1: 0, x2: 13, y2: 34 }, g); S('line', { x1: 21, y1: 0, x2: 21, y2: 34 }, g); },
+    setup: function (svg, level, ctx) {
+      var L = pick(LAYOUTS), P = { x: 30, y: 20, w: 280, h: 360 }, m = 20, g = 12, colW = (P.w - 2 * m - (L.n - 1) * g) / L.n;
+      var els = L.els.map(function (e) { return { type: e[0], w: e[2] * colW + (e[2] - 1) * g, h: e[4], tx: P.x + m + e[1] * (colW + g), ty: P.y + e[3] }; });
+      S('rect', { x: P.x, y: P.y, width: P.w, height: P.h, fill: '#fff', stroke: '#cfcfcf' }, svg);
+      for (var i = 0; i < L.n; i++) S('rect', { x: P.x + m + i * (colW + g), y: P.y + m, width: colW, height: P.h - 2 * m, fill: 'rgba(230,0,18,.06)' }, svg);
+      var th = S('g', { transform: 'translate(350,20) scale(.4)' }, svg);
+      S('rect', { width: P.w, height: P.h, fill: '#fff', stroke: '#bbb', 'stroke-width': 2 }, th);
+      els.forEach(function (e) { drawEl(S('g', { transform: 'translate(' + (e.tx - P.x) + ',' + (e.ty - P.y) + ')' }, th), e.type, e.w, e.h); });
+      T(svg, 350, 182, 'TARGET');
+      var layer = S('g', {}, svg);
+      els.forEach(function (e) {
+        var a = rand(0, Math.PI * 2), dd = rand(60, 130);
+        e.x = clamp(e.tx + Math.cos(a) * dd, 0, W - e.w); e.y = clamp(e.ty + Math.sin(a) * dd, 0, H - e.h);
+        var node = S('g', { 'class': 'up-drag' }, layer), ox, oy;
+        drawEl(node, e.type, e.w, e.h);
+        function draw() { node.setAttribute('transform', 'translate(' + e.x + ',' + e.y + ')'); }
+        draw();
+        draggable(node, svg, ctx, { start: function () { ox = e.x; oy = e.y; layer.appendChild(node); }, move: function (dx, dy) { e.x = clamp(ox + dx, 0, W - e.w); e.y = clamp(oy + dy, 0, H - e.h); draw(); } });
+      });
+      return function () {
+        els.forEach(function (e) { S('rect', { x: e.tx, y: e.ty, width: e.w, height: e.h, fill: 'none', stroke: RED, 'stroke-dasharray': '4 4' }, svg); });
+        var err = els.reduce(function (s, e) { return s + Math.hypot(e.x - e.tx, e.y - e.ty); }, 0) / els.length;
+        return { score: Math.round(clamp(100 - err * 1.8, 0, 100)), note: 'Avg offset <b>' + err.toFixed(1) + 'px</b>' };
+      };
+    }
+  };
+
+  // --- Type jump ratio ---
+  M.jump = {
+    name: 'Jump', jp: 'ジャンプ率', cat: 'Type', task: '', taskJp: '',
+    icon: function (g) { var a = S('text', { x: 0, y: 30, 'font-size': 30, fill: FG, stroke: 'none' }, g); a.textContent = 'A'; var b = S('text', { x: 22, y: 30, 'font-size': 11, fill: FG, stroke: 'none' }, g); b.textContent = 'a'; },
+    setup: function (svg, level, ctx, extra) {
+      var target = pick([[1.5, 2, 2.5], [3, 4], [5, 6, 8]][level]), body = 11, maxR = 10, X = 50, TOP = 46;
+      ctx.setTask('Set the jump ratio to ' + target + '×', '見出しと本文のサイズ比（ジャンプ率）を ' + target + ' 倍にする');
+      var word = pick(['Design', 'Grid', 'Type', 'Form', 'Space', 'Layout']);
+      var head = S('text', { x: X, fill: FG, 'font-weight': 500 }, svg); head.textContent = word;
+      var lines = ['Typography is the craft of endowing human language', 'with a durable visual form. Good spacing is invisible —', 'bad spacing is all you can see. Hierarchy tells the eye', 'where to begin, and where to rest.'];
+      var bodyEls = lines.map(function (t) { var e = S('text', { x: X, fill: '#666', 'font-size': body }, svg); e.textContent = t; return e; });
+      var r; do { r = Math.exp(rand(0, Math.log(maxR))); } while (Math.abs(Math.log(r / target)) < Math.log(1.4));
+      function draw() { var hs = body * r, base = TOP + hs * .75; head.setAttribute('font-size', hs); head.setAttribute('y', base); bodyEls.forEach(function (e, i) { e.setAttribute('y', base + 30 + i * 17); }); }
+      draw();
+      var row = el('div', 'up-slider'), inp = el('input');
+      inp.type = 'range'; inp.min = 0; inp.max = 1000; inp.value = Math.round(Math.log(r) / Math.log(maxR) * 1000);
+      inp.setAttribute('aria-label', 'Heading size');
+      inp.addEventListener('input', function () { if (ctx.locked) return; r = Math.exp(inp.value / 1000 * Math.log(maxR)); draw(); });
+      row.appendChild(el('span', '', 'Body')); row.appendChild(inp); row.appendChild(el('span', '', 'Head'));
+      extra.appendChild(row);
+      return function () {
+        inp.disabled = true;
+        var g = S('text', { x: X, y: TOP + body * target * .75, 'font-size': body * target, 'font-weight': 500, fill: 'none', stroke: RED, 'stroke-dasharray': '3 2' }, svg); g.textContent = word;
+        var err = Math.abs(Math.log(r / target));
+        return { score: Math.round(clamp(100 - err * 200, 0, 100)), note: 'You <b>' + r.toFixed(2) + '×</b> &nbsp; Target <b>' + target + '×</b>' };
+      };
+    }
+  };
+
+  // --- Editorial terms on a book spread ---
+  var LB = { x: 95, w: 170 }, RB = { x: 335, w: 170 }, BT = 90, BB = 300;
+  var TERMS = {
+    ten: { jp: '天', en: 'Head', test: function (x, y) { return y >= 50 && y < BT && x >= 60 && x <= 540; }, area: [[60, 50, 480, 40]] },
+    chi: { jp: '地', en: 'Foot', test: function (x, y) { return y > BB && y <= 350 && x >= 60 && x <= 540; }, area: [[60, 300, 480, 50]] },
+    koguchi: { jp: '小口', en: 'Fore-edge', test: function (x, y) { return y >= 50 && y <= 350 && ((x >= 60 && x < LB.x) || (x > RB.x + RB.w && x <= 540)); }, area: [[60, 50, 35, 300], [505, 50, 35, 300]] },
+    nodo: { jp: 'ノド', en: 'Gutter', test: function (x, y) { return y >= 50 && y <= 350 && x > LB.x + LB.w && x < RB.x; }, area: [[265, 50, 70, 300]] },
+    nombre: { jp: 'ノンブル', en: 'Page number', test: function (x, y) { return y >= 310 && y <= 338 && ((x >= 86 && x <= 126) || (x >= 474 && x <= 514)); }, area: [[86, 310, 40, 28], [474, 310, 40, 28]] },
+    hashira: { jp: '柱', en: 'Running head', test: function (x, y) { return y >= 58 && y <= 82 && ((x >= 88 && x <= 180) || (x >= 420 && x <= 512)); }, area: [[88, 58, 92, 24], [420, 58, 92, 24]] },
+    hanmen: { jp: '版面', en: 'Type area', test: function (x, y) { return y >= BT && y <= BB && ((x >= LB.x && x <= LB.x + LB.w) || (x >= RB.x && x <= RB.x + RB.w)); }, area: [[95, 90, 170, 210], [335, 90, 170, 210]] }
+  };
+  M.edit = {
+    name: 'Editorial', jp: 'エディトリアル名称', cat: 'Editorial', task: '', taskJp: '',
+    icon: function (g) { S('rect', { x: 1, y: 5, width: 16, height: 24 }, g); S('rect', { x: 17, y: 5, width: 16, height: 24 }, g); S('line', { x1: 5, y1: 12, x2: 13, y2: 12 }, g); S('line', { x1: 21, y1: 12, x2: 29, y2: 12 }, g); },
+    setup: function (svg, level, ctx) {
+      var keys = level === 0 ? shuffle(['ten', 'chi', 'nodo']) : level === 1 ? shuffle(['koguchi', 'nombre', 'hashira']) : shuffle(['hanmen', 'koguchi', 'nodo', 'hashira', 'nombre']).slice(0, 3);
+      [[60, 300], [300, 300]].forEach(function (p) { S('rect', { x: p[0], y: 50, width: 240, height: 300, fill: '#fff', stroke: '#cfcfcf' }, svg); });
+      S('line', { x1: 300, y1: 50, x2: 300, y2: 350, stroke: '#bbb' }, svg);
+      [LB, RB].forEach(function (b) { for (var y = BT + 4; y < BB; y += 9) S('line', { x1: b.x, y1: y, x2: (y + 9 >= BB) ? b.x + b.w * .5 : b.x + b.w, y2: y, stroke: '#d6d6d6', 'stroke-width': 3 }, svg); });
+      T(svg, 95, 74, 'DESIGN PUZZLE', DIM, 8); T(svg, 505, 74, 'EDITORIAL', DIM, 8, 'end');
+      T(svg, 95, 330, '024', FG, 10); T(svg, 505, 330, '025', FG, 10, 'end');
+      var prompt = T(svg, 300, 32, '', FG, 14, 'middle', 500), taps = [], marks = S('g', {}, svg), hit = S('rect', { x: 0, y: 0, width: W, height: H, fill: 'transparent', 'class': 'up-click' }, svg);
+      function ask() {
+        var k = keys[taps.length];
+        if (k) { prompt.textContent = (taps.length + 1) + ' / 3   ' + TERMS[k].jp + ' — ' + TERMS[k].en; ctx.setTask('Tap: ' + TERMS[k].en, '「' + TERMS[k].jp + '」はどこ？ タップする（' + (taps.length + 1) + ' / 3）'); }
+        else { prompt.textContent = 'Check ↓'; ctx.setTask('Done — press Check', '3つ答えました。CHECKを押す'); }
+      }
+      ask();
+      tap(hit, ctx, function (e) {
+        if (taps.length >= 3) return;
+        var p = svgPoint(svg, e); taps.push({ x: p.x, y: p.y, k: keys[taps.length] });
+        S('circle', { cx: p.x, cy: p.y, r: 9, fill: FG }, marks); T(marks, p.x, p.y + 4, String(taps.length), '#fff', 10, 'middle');
+        ask();
+      });
+      return function () {
+        var ok = 0;
+        keys.forEach(function (k, i) {
+          TERMS[k].area.forEach(function (a) { S('rect', { x: a[0], y: a[1], width: a[2], height: a[3], fill: 'rgba(230,0,18,.12)', stroke: RED, 'stroke-dasharray': '3 3' }, svg); T(svg, a[0] + a[2] / 2, a[1] + a[3] / 2 + 4, TERMS[k].jp, RED, 11, 'middle', 500); });
+          var t = taps[i]; if (t && TERMS[k].test(t.x, t.y)) ok++;
+        });
+        svg.appendChild(marks);
+        prompt.textContent = '';
+        return { score: Math.round(ok / 3 * 100), note: 'Correct <b>' + ok + ' / 3</b>' };
+      };
+    }
+  };
+
+  // --- Photo crop (rule of thirds) — illustrated placeholder scene ---
+  M.crop = {
+    name: 'Crop', jp: '写真のトリミング', cat: 'Photo', task: 'Crop so the subject sits on a thirds point', taskJp: '切り抜き枠を動かして、人物を三分割線の交点に置く',
+    icon: function (g) { S('polyline', { points: '7,1 7,27 33,27', fill: 'none' }, g); S('polyline', { points: '1,7 27,7 27,33', fill: 'none' }, g); },
+    setup: function (svg, level, ctx) {
+      var P = { x: 20, y: 20, w: 560, h: 360 }, hy = rand(190, 270);
+      S('rect', { x: P.x, y: P.y, width: P.w, height: hy - P.y, fill: '#f1f1f1' }, svg);
+      S('rect', { x: P.x, y: hy, width: P.w, height: P.y + P.h - hy, fill: '#e2e2e2' }, svg);
+      S('circle', { cx: rand(60, 540), cy: rand(50, hy - 50), r: 22, fill: '#fff', stroke: '#d6d6d6' }, svg);
+      for (var i = 0; i < 4; i++) { var tx = rand(40, 560), th = rand(30, 70); S('rect', { x: tx - 2, y: hy - th, width: 4, height: th, fill: '#cfcfcf' }, svg); S('circle', { cx: tx, cy: hy - th, r: th * .35, fill: '#d9d9d9' }, svg); }
+      var sx = rand(150, 450), sy = clamp(hy - 18, 120, 300);
+      S('circle', { cx: sx, cy: sy - 26, r: 9, fill: FG }, svg); S('rect', { x: sx - 8, y: sy - 15, width: 16, height: 34, rx: 6, fill: FG }, svg);
+      var fw = [300, 240, 200][level], fh = [225, 240, 250][level], grid = level === 0;
+      var f = { x: clamp(sx - fw / 2, P.x, P.x + P.w - fw), y: clamp(sy - fh / 2, P.y, P.y + P.h - fh) };
+      var shade = S('path', { fill: 'rgba(255,255,255,.72)', 'fill-rule': 'evenodd', 'pointer-events': 'none' }, svg);
+      var frame = S('g', { 'class': 'up-drag' }, svg);
+      S('rect', { width: fw, height: fh, fill: 'transparent', stroke: FG, 'stroke-width': 1.5 }, frame);
+      if (grid) [1, 2].forEach(function (k) { S('line', { x1: fw * k / 3, y1: 0, x2: fw * k / 3, y2: fh, stroke: 'rgba(17,17,17,.3)' }, frame); S('line', { x1: 0, y1: fh * k / 3, x2: fw, y2: fh * k / 3, stroke: 'rgba(17,17,17,.3)' }, frame); });
+      [[0, 0, 1, 1], [fw, 0, -1, 1], [0, fh, 1, -1], [fw, fh, -1, -1]].forEach(function (c) { S('polyline', { points: (c[0] + 14 * c[2]) + ',' + c[1] + ' ' + c[0] + ',' + c[1] + ' ' + c[0] + ',' + (c[1] + 14 * c[3]), fill: 'none', stroke: FG, 'stroke-width': 3 }, frame); });
+      function draw() {
+        frame.setAttribute('transform', 'translate(' + f.x + ',' + f.y + ')');
+        shade.setAttribute('d', 'M' + P.x + ' ' + P.y + 'h' + P.w + 'v' + P.h + 'h' + (-P.w) + 'Z M' + f.x + ' ' + f.y + 'v' + fh + 'h' + fw + 'v' + (-fh) + 'Z');
+      }
+      draw();
+      var ox, oy;
+      draggable(frame, svg, ctx, { start: function () { ox = f.x; oy = f.y; }, move: function (dx, dy) { f.x = clamp(ox + dx, P.x, P.x + P.w - fw); f.y = clamp(oy + dy, P.y, P.y + P.h - fh); draw(); } });
+      return function () {
+        var inside = sx > f.x && sx < f.x + fw && sy > f.y && sy < f.y + fh, best = null, err = Infinity;
+        [1, 2].forEach(function (a) { [1, 2].forEach(function (b) {
+          var d = Math.hypot(sx - (f.x + fw * a / 3), sy - (f.y + fh * b / 3)); if (d < err) err = d;
+          var bx = sx - fw * a / 3, by = sy - fh * b / 3;
+          if (bx >= P.x && by >= P.y && bx + fw <= P.x + P.w && by + fh <= P.y + P.h) { var dist = Math.hypot(bx - f.x, by - f.y); if (!best || dist < best.d) best = { x: bx, y: by, d: dist }; }
+        }); });
+        if (best) S('rect', { x: best.x, y: best.y, width: fw, height: fh, fill: 'none', stroke: RED, 'stroke-dasharray': '4 4' }, svg);
+        return { score: inside ? Math.round(clamp(100 - err * 1.2, 0, 100)) : 0, note: inside ? 'Off by <b>' + err.toFixed(1) + 'px</b>' : '<b>Subject is out of frame</b>' };
+      };
+    }
+  };
+
+  var ORDER = ['shape', 'cmyk', 'rgb', 'palette', 'scheme', 'golden', 'silver', 'fib', 'layout', 'jump', 'edit', 'crop'];
+
+  // ================= CONTROLLER =================
+  // One game = 10 different puzzles, getting harder, then a final score.
+  var GAME = 10, LEVELS = [0, 0, 0, 1, 1, 1, 1, 2, 2, 2];
+  var RANKS = [[95, 'Pixel perfect', '完璧な目'], [85, 'Art director', 'アートディレクター級'], [70, 'Senior designer', 'シニアデザイナー級'], [50, 'Junior designer', 'ジュニアデザイナー級'], [0, 'Intern', 'インターン']];
+  var $ = function (s) { return root.querySelector(s); };
+  var stage = $('.up-stage'), extra = $('.up-extra'), result = $('.up-result');
+  var btnGo = $('[data-act=go]'), btnBack = $('[data-act=back]'), btnReset = $('[data-act=reset]');
+  var hist = [], pos = 0, judge = null, done = false, ctx = null, over = false;
+  var store = { get: function () { try { return +localStorage.getItem('uma_puzzle_best') || 0; } catch (e) { return 0; } }, set: function (v) { try { localStorage.setItem('uma_puzzle_best', v); } catch (e) {} } };
+
+  function newGame(first) {
+    var keys = ORDER.filter(function (k) { return k !== first; });
+    for (var i = keys.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = keys[i]; keys[i] = keys[j]; keys[j] = t; }
+    if (first) keys.unshift(first);
+    hist = keys.slice(0, GAME).map(function (k, i) { return { key: k, level: LEVELS[i], seed: Math.floor(Math.random() * 1e9), score: null }; });
+    pos = 0; over = false; render();
+  }
+  function render() {
+    var e = hist[pos], m = M[e.key];
+    done = false; stage.innerHTML = ''; extra.innerHTML = '';
+    $('.up-no').innerHTML = 'No.' + ('0' + (pos + 1)).slice(-2) + ' / ' + GAME + ' &nbsp;—&nbsp; <em>' + m.cat + '</em>';
+    $('.up-name').textContent = m.name; $('.up-namejp').textContent = m.jp;
+    var tEn = $('.up-task-en'), tJp = $('.up-task-jp');
+    tEn.textContent = m.task; tJp.textContent = m.taskJp;
+    result.innerHTML = 'Level <b>' + (e.level + 1) + '</b> / 3';
+    btnGo.textContent = 'Check'; btnBack.disabled = pos === 0; btnReset.disabled = false;
+    var svg = S('svg', { viewBox: '0 0 ' + W + ' ' + H, 'class': 'up-svg', role: 'img', 'aria-label': m.name });
+    stage.appendChild(svg);
+    var at = pos;
+    ctx = {
+      locked: false,
+      setTask: function (en, jp) { tEn.textContent = en; tJp.textContent = jp; },
+      // solved by the player: show the red check, then move on by itself
+      solved: function () { setTimeout(function () { if (pos !== at || done || over) return; go(); setTimeout(function () { if (pos === at && done && !over) go(); }, 1400); }, 200); }
+    };
+    SEED = e.seed;
+    judge = m.setup(svg, e.level, ctx, extra);
+  }
+  function finish() {
+    over = true;
+    var total = Math.round(hist.reduce(function (s, h) { return s + (h.score || 0); }, 0) / GAME);
+    var best = store.get(), isBest = total > best; if (isBest) store.set(total);
+    var rk = RANKS.filter(function (r) { return total >= r[0]; })[0];
+    stage.innerHTML = ''; extra.innerHTML = '';
+    $('.up-no').innerHTML = 'Result';
+    $('.up-name').textContent = rk[1]; $('.up-namejp').textContent = rk[2];
+    $('.up-task-en').textContent = ''; $('.up-task-jp').textContent = '';
+    var box = el('div', 'up-final');
+    box.appendChild(el('div', 'up-big', String(total)));
+    box.appendChild(el('div', 'up-sub', (isBest ? '<em>New best</em>' : 'Best <b>' + Math.max(best, total) + '</b>') + ' &nbsp; / 100'));
+    var rows = el('div', 'up-rows');
+    hist.forEach(function (h, i) { rows.appendChild(el('div', 'up-row', '<span>' + ('0' + (i + 1)).slice(-2) + ' &nbsp; ' + M[h.key].name + '</span><b>' + (h.score == null ? '—' : h.score) + '</b>')); });
+    box.appendChild(rows);
+    stage.appendChild(box);
+    result.innerHTML = '';
+    btnGo.textContent = 'Play again'; btnBack.disabled = false; btnReset.disabled = true;
+  }
+  function go() {
+    if (over) { newGame(); return; }
+    if (!done) {
+      done = true; ctx.locked = true;
+      var r = judge(); hist[pos].score = r.score;
+      var sum = hist.reduce(function (s, h) { return s + (h.score || 0); }, 0);
+      result.innerHTML = 'Score <b class="up-hi">' + r.score + '</b> &nbsp; ' + r.note + '<br>Total <b>' + sum + '</b> / ' + GAME * 100;
+      btnGo.textContent = pos === GAME - 1 ? 'Result →' : 'Next →';
+    } else if (pos === GAME - 1) finish();
+    else { pos++; render(); }
+  }
+  root.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-act]'); if (!b || b.disabled) return;
+    var act = b.getAttribute('data-act');
+    if (act === 'go') go();
+    else if (act === 'reset' && !over) render();
+    else if (act === 'back') { if (over) { over = false; pos = GAME - 1; render(); } else if (pos > 0) { pos--; render(); } }
+    else if (act === 'index') root.classList.add('up-show-index');
+    else if (act === 'close') root.classList.remove('up-show-index');
+  });
+
+  // index: start a new game from the chosen puzzle
+  var tiles = $('.up-tiles');
+  ORDER.forEach(function (key) {
+    var m = M[key], t = el('div', 'up-tile'), ic = S('svg', { viewBox: '0 0 34 34', fill: 'none', stroke: FG, 'stroke-width': 1.4 });
+    m.icon(ic); t.appendChild(ic);
+    t.appendChild(el('span', 'up-lbl', m.name)); t.appendChild(el('span', 'up-jp', m.jp));
+    t.setAttribute('role', 'button'); t.tabIndex = 0;
+    var open = function () { root.classList.remove('up-show-index'); newGame(key); };
+    t.addEventListener('click', open);
+    t.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') open(); });
+    tiles.appendChild(t);
+  });
+
+  var start = function () { newGame(); };
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(start); else start();
+})();
