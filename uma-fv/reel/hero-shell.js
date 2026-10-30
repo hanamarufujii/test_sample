@@ -1,5 +1,5 @@
 /* U-MA first view — code-driven showreel (no video file).
-   Waits on a red dot with "Click me !"; a click / tap / Enter plays the 15 s reel once, which ends on the red dot again.
+   Waits on a red dot with "Click me !"; a click / tap / Enter plays the 15 s reel once, which ends on the red dot with "Play again !" and "Scroll down".
    WordPress Raw HTML:
      <div id="uma-hero"></div>
      <script src="https://hanamarufujii.github.io/test_sample/uma-fv/uma-hero.js" defer></script>
@@ -39,15 +39,15 @@
     fit(true); REEL.init(ctx); REEL.setBlurSamples(1);   // live playback: real 60 fps motion, no blur copies
     REEL.prewarm(ctx, cv.width, cv.height);
     var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var mode = 'idle', t0 = performance.now(), visible = true, raf = 0;
+    var mode = 'idle', t0 = performance.now(), visible = true, raf = 0, played = false;
     function frame(now) {
       raf = 0; if (!visible) return;
       if (mode === 'play') {
         var t = (now - t0) / 1000;
         if (t < REEL.DUR) REEL.draw(ctx, t, cv.width, cv.height);
-        else { mode = 'idle'; t0 = now - 500; root.style.cursor = 'pointer'; }   // back on the dot: "Click me !" slides in again
+        else { mode = 'idle'; played = true; t0 = now - 500; root.style.cursor = 'pointer'; root.setAttribute('aria-label', 'Play the U-MA showreel again'); }   // back on the dot: Play again / Scroll down
       }
-      if (mode === 'idle') REEL.idle(ctx, (now - t0) / 1000, cv.width, cv.height, still);
+      if (mode === 'idle') REEL.idle(ctx, (now - t0) / 1000, cv.width, cv.height, still, played);
       if (!still || mode === 'play') raf = requestAnimationFrame(frame);
     }
     function play() {

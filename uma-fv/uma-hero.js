@@ -1,5 +1,5 @@
 /* U-MA first view — code-driven showreel (no video file).
-   Waits on a red dot with "Click me !"; a click / tap / Enter plays the 15 s reel once, which ends on the red dot again.
+   Waits on a red dot with "Click me !"; a click / tap / Enter plays the 15 s reel once, which ends on the red dot with "Play again !" and "Scroll down".
    WordPress Raw HTML:
      <div id="uma-hero"></div>
      <script src="https://hanamarufujii.github.io/test_sample/uma-fv/uma-hero.js" defer></script>
@@ -451,7 +451,7 @@
   }
 
 
-  // Bar 8 (12–15 s) the wire draws the clip around U M A → the official logo holds, with a burst → back to the red dot
+  // Bar 8 (12–15 s) the wire draws the clip around U M A → the official logo holds, with a burst → the red dot, Play again / Scroll down
   var T_LOGO = 12.5;
   function bar8(ctx, t) {
     bg(ctx, WHITE);
@@ -478,30 +478,41 @@
     }
     var d = 32 * eOut(seg(t, 14.45, 14.8));
     if (d > .5) rrect(ctx, CX - d / 2, CY - d / 2, d, d, d / 2, RED);
-    scrollDown(ctx, eOut(seg(t, 14.6, 14.95)));
+    afterText(ctx, eOut(seg(t, 14.6, 14.95)), null);
   }
 
-  // Waiting screen: the red dot, "Click me !" beside it and SCROLL DOWN under it; the dot beats at 120 BPM.
+  // Waiting screen. Before the first play: the red dot with "Click me !" beside it.
+  // After a play: "Play again !" above the dot, "Scroll down" and an arrow under it. The dot beats at 120 BPM.
   // ti = seconds since the waiting screen started; still = no motion (prefers-reduced-motion)
-  function scrollDown(ctx, e) {
+  function bang(ctx, str, cx, y, fs, align) {   // a small caption whose "!" is red
+    var tr = fs * .2, w = mw(ctx, str + ' ', 500) * fs + (str.length + 1) * tr, x = align === 'left' ? cx : cx - (w + mw(ctx, '!', 500) * fs) / 2;
+    text(ctx, str + ' ', x, y, fs, 500, BLACK, 'left', tr); text(ctx, '!', x + w, y, fs, 500, RED, 'left', 0);
+  }
+  function afterText(ctx, e, ti) {   // "Play again !" above, "Scroll down ↓" below
     if (e <= 0) return;
-    var fs = tiny(11); ctx.globalAlpha = e;
-    text(ctx, 'SCROLL DOWN', CX, CY + 30 + CAP * fs + (1 - e) * 8, fs, 500, BLACK, 'center', fs * .3);
+    var fs = tiny(11), d = (1 - e) * 8, bob = ti == null ? 0 : 3 * Math.sin((ti - .5) * Math.PI);
+    ctx.globalAlpha = e;
+    bang(ctx, 'Play again', CX, CY - 32 + d, fs, 'center');
+    var y = CY + 32 + CAP * fs - d;
+    text(ctx, 'Scroll down', CX, y, fs, 500, BLACK, 'center', fs * .2);
+    var a = fs * 1.3, ay = y + fs * .9 + bob, lw = Math.max(1, fs * .1);   // the arrow
+    ctx.strokeStyle = BLACK; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.beginPath(); ctx.moveTo(CX, ay); ctx.lineTo(CX, ay + a); ctx.moveTo(CX - a * .32, ay + a * .68); ctx.lineTo(CX, ay + a); ctx.lineTo(CX + a * .32, ay + a * .68); ctx.stroke();
     ctx.globalAlpha = 1;
   }
-  function idle(ctx, ti, pw, ph, still) {
+  function idle(ctx, ti, pw, ph, still, played) {
     setView(ctx, pw, ph); bg(ctx, WHITE);
-    var a = still ? 1 : spring(seg(ti, 0, .5)), phase = (((ti - .5) % .5) + .5) % .5 / .5;
+    var a = still || played ? 1 : spring(seg(ti, 0, .5)), phase = (((ti - .5) % .5) + .5) % .5 / .5;
     var pul = still || ti < .5 ? 0 : 1 - eOut(Math.min(1, phase * 2.5)), r = 32 * a * (1 + .18 * pul);
     if (r > .5) rrect(ctx, CX - r / 2, CY - r / 2, r, r, r / 2, RED);
+    if (played) { afterText(ctx, 1, still ? null : ti); return; }   // the reel already faded these in
     var e = still ? 1 : eOut(seg(ti, .45, .9));
     if (e > 0) {
-      var fs = tiny(11), tr = fs * .2, x = CX + 30 - (1 - e) * 40, w = mw(ctx, 'Click me ', 500) * fs + 9 * tr, y = CY + CAP * fs / 2;
+      var fs = tiny(11);
       ctx.save(); ctx.beginPath(); ctx.rect(CX + 24, CY - 40, 600, 80); ctx.clip();
-      text(ctx, 'Click me ', x, y, fs, 500, BLACK, 'left', tr); text(ctx, '!', x + w, y, fs, 500, RED, 'left', 0);
+      bang(ctx, 'Click me', CX + 30 - (1 - e) * 40, CY + CAP * fs / 2, fs, 'left');
       ctx.restore();
     }
-    scrollDown(ctx, still ? 1 : eOut(seg(ti, 0, .45)));
   }
 
   function setView(ctx, pw, ph) {
@@ -529,15 +540,15 @@
     fit(true); REEL.init(ctx); REEL.setBlurSamples(1);   // live playback: real 60 fps motion, no blur copies
     REEL.prewarm(ctx, cv.width, cv.height);
     var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var mode = 'idle', t0 = performance.now(), visible = true, raf = 0;
+    var mode = 'idle', t0 = performance.now(), visible = true, raf = 0, played = false;
     function frame(now) {
       raf = 0; if (!visible) return;
       if (mode === 'play') {
         var t = (now - t0) / 1000;
         if (t < REEL.DUR) REEL.draw(ctx, t, cv.width, cv.height);
-        else { mode = 'idle'; t0 = now - 500; root.style.cursor = 'pointer'; }   // back on the dot: "Click me !" slides in again
+        else { mode = 'idle'; played = true; t0 = now - 500; root.style.cursor = 'pointer'; root.setAttribute('aria-label', 'Play the U-MA showreel again'); }   // back on the dot: Play again / Scroll down
       }
-      if (mode === 'idle') REEL.idle(ctx, (now - t0) / 1000, cv.width, cv.height, still);
+      if (mode === 'idle') REEL.idle(ctx, (now - t0) / 1000, cv.width, cv.height, still, played);
       if (!still || mode === 'play') raf = requestAnimationFrame(frame);
     }
     function play() {
