@@ -31,3 +31,13 @@ served by GitHub Pages from the `main` branch. The Raw HTML element then only ne
 
 Pushing to `main` updates the live site within minutes (GitHub Pages caches ~10 min).
 `preview-2lines.html` checks this setup locally.
+
+## First view (typographic motion)
+`uma-hero.js` — white, black type, one red hyphen. Fills the screen (landscape on PC,
+portrait on SP), plays once (~6 s) and rests on the final layout. Raw HTML:
+
+```html
+<div id="uma-hero"></div>
+<script src="https://hanamarufujii.github.io/test_sample/uma-fv/uma-hero.js" defer></script>
+```
+`preview-hero.html` checks it inside a boxed theme-like column.
