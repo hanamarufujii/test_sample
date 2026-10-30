@@ -6,7 +6,7 @@
   var W = 1920, H = 1080, CX = 960, CY = 540, DUR = 15;
   var WHITE = '#ffffff', BLACK = '#0b0b0b', RED = '#e60012';
   var FONT = '"Jost", "Futura", "Futura PT", "Century Gothic", sans-serif';
-  var BLUR_SAMPLES = 8;   // samples per 1/60 s along each moving element's path (1 = off)
+  var BLUR_SAMPLES = 24, SHUTTER = .5 / 60;   // 180° shutter: each moving element is averaged over the last half frame (1 sample = off)
 
   // ---------- time & easing (all functions of time) ----------
   function clamp(x, a, b) { return x < a ? a : x > b ? b : x; }
@@ -44,11 +44,11 @@
   // ---------- drawing helpers ----------
   function bg(ctx, c) { ctx.fillStyle = c; ctx.fillRect(-W * 4, -H * 8, W * 9, H * 17); }   // bleeds to any screen shape
   function rrect(ctx, x, y, w, h, r, c) { ctx.fillStyle = c; ctx.beginPath(); r = Math.min(r, w / 2, h / 2); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r); ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath(); ctx.fill(); }
-  // motion blur that follows speed and direction: the element is averaged over its own path during the last 1/60 s
+  // motion blur that follows speed and direction: the element is averaged over its own path during the shutter time
   // (oldest copy at full alpha, the i-th at 1/(i+1) — a running mean, so static elements are unchanged)
   function trail(ctx, t, fn) {
     var n = BLUR_SAMPLES, a = ctx.globalAlpha;
-    for (var i = 0; i < n; i++) { ctx.globalAlpha = a / (i + 1); fn(t - (n - 1 - i) / (n - 1 || 1) / 60); }
+    for (var i = 0; i < n; i++) { ctx.globalAlpha = a / (i + 1); fn(t - (n - 1 - i) / (n - 1 || 1) * SHUTTER); }
     ctx.globalAlpha = a;
   }
   // radius functions for shape morphing (unit size)
@@ -115,14 +115,17 @@
     if (t < 5.5 || seg(t, 5.5, 5.95) < 1) bg(ctx, BLACK);
     if (t < 4.5) {
       'STUDIO'.split('').forEach(function (c, i) {
-        if (i === 4) return;
+        if (i === 5) return;   // the O stays and becomes the shape; S T U D I fly off to the left
         var xi = x0 + mw(ctx, 'STUDIO'.slice(0, i), 700) * fs;
-        trail(ctx, t, function (tt) { var d = eIn(seg(tt, 4, 4.35)) * 1700 * (i < 4 ? -1 : 1); text(ctx, c, xi + d, base, fs, 700, WHITE, 'left'); });
+        trail(ctx, t, function (tt) { var d = -eIn(seg(tt, 4, 4.35 - (4 - i) * .02)) * 1900; text(ctx, c, xi + d, base, fs, 700, WHITE, 'left'); });
       });
       var wO = mw(ctx, 'O', 700) * fs, xo = x0 + mw(ctx, 'STUDI', 700) * fs + wO / 2, rO = CAP * fs / 2 * 1.03;
-      var p = eInOut(seg(t, 4, 4.45)), R = lerp(rO, 260, p), sw = lerp(.135 * fs, 2 * R, eIn(p)), cx = lerp(xo, CX, p);
-      ctx.beginPath(); ctx.arc(cx, CY, R, 0, Math.PI * 2); if (R - sw > 0) ctx.arc(cx, CY, R - sw, 0, Math.PI * 2, true);
-      ctx.fillStyle = WHITE; ctx.fill('evenodd'); return;
+      trail(ctx, t, function (tt) {
+        var p = eInOut(seg(tt, 4, 4.45)), R = lerp(rO, 260, p), sw = lerp(.165 * fs, 2 * R, eIn(p)), cx = lerp(xo, CX, p);
+        ctx.beginPath(); ctx.arc(cx, CY, R, 0, Math.PI * 2); if (R - sw > 0) ctx.arc(cx, CY, R - sw, 0, Math.PI * 2, true);
+        ctx.fillStyle = WHITE; ctx.fill('evenodd');
+      });
+      return;
     }
     if (t < 5) { var m = eInOut(seg(t, 4.5, 4.9)); poly(ctx, CX, CY, function (th) { return lerp(260, 230 * rSquare(th), m); }, lerp(0, Math.PI / 2, m), WHITE); return; }
     var m2 = eInOut(seg(t, 5, 5.4)), k = lerp(1, 9, eIn(seg(t, 5.5, 5.95)));

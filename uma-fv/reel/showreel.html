@@ -15,7 +15,8 @@ window.ready = Promise.all([document.fonts.load('700 100px Jost'), document.font
 
 // Soundtrack, written in code: kick on every beat, hats from bar 2, a riser into bar 7, a hit on every scene change.
 window.renderAudio = async function () {
-  var SR = 44100, DUR = 15, ac = new OfflineAudioContext(2, SR * DUR, SR), out = ac.createGain(); out.gain.value = .8; out.connect(ac.destination);
+  var SR = 44100, DUR = 15, ac = new OfflineAudioContext(2, SR * DUR, SR), out = ac.createGain(), lim = ac.createDynamicsCompressor();
+  out.gain.value = .55; lim.threshold.value = -6; lim.knee.value = 0; lim.ratio.value = 20; lim.attack.value = .002; lim.release.value = .08; out.connect(lim).connect(ac.destination);
   var noise = ac.createBuffer(1, SR * 2, SR), d = noise.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
   function kick(t, amp) { var o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + .12);
     g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(.001, t + .38); o.connect(g).connect(out); o.start(t); o.stop(t + .4); }
