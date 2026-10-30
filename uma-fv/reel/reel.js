@@ -59,7 +59,18 @@
     for (var i = 0; i <= 240; i++) { var th = i / 240 * Math.PI * 2, r = rf(th), x = cx + Math.cos(th + rot) * r, y = cy + Math.sin(th + rot) * r; if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
     ctx.closePath(); ctx.fillStyle = color; ctx.fill();
   }
-  var VIEW = null, layers = {};
+  var VIEW = null, layers = {}, sprites = {}, spriteScale = 0;
+  // a bitmap drawn once (in design units) and reused every frame
+  function sprite(key, w, h, fn) {
+    if (spriteScale !== VIEW.s) { sprites = {}; spriteScale = VIEW.s; frozen = null; }
+    var sp = sprites[key];
+    if (!sp) {
+      var c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w * VIEW.s)); c.height = Math.max(1, Math.ceil(h * VIEW.s));
+      var x = c.getContext('2d'); x.scale(VIEW.s, VIEW.s); fn(x); sp = sprites[key] = { c: c, w: w, h: h };
+    }
+    return sp;
+  }
+  function blitC(ctx, canvas, dx) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(canvas, (dx || 0) * VIEW.s, 0); ctx.restore(); }
   function layer(ctx, name) {
     var c = layers[name];
     if (!c || c.width !== ctx.canvas.width || c.height !== ctx.canvas.height) { c = document.createElement('canvas'); c.width = ctx.canvas.width; c.height = ctx.canvas.height; layers[name] = c; }
@@ -158,22 +169,32 @@
       if (ru > 0) { ctx.save(); ctx.beginPath(); ctx.rect(hx - L.hw / 2 - ru, -H, ru, H * 3); ctx.clip(); text(ctx, 'U', L.xU + (1 - rv) * L.wU * .7, L.base, L.fs, 700, color, 'left'); ctx.restore(); }
       if (rm > 0) { ctx.save(); ctx.beginPath(); ctx.rect(hx + L.hw / 2, -H, rm, H * 3); ctx.clip(); text(ctx, 'MA', L.xMA - (1 - rv) * L.wMA * .7, L.base, L.fs, 700, color, 'left'); ctx.restore(); }
     }
-    // extrusion: layers stacked along the camera's "up", far ones lighter
-    var step = 3, n = Math.floor(P.d / step);
-    for (var k = n; k >= 1; k--) {
-      var dx = Math.cos(P.ang) * k * step, dy = Math.sin(P.ang) * k * step, shade = Math.round(lerp(232, 150, 1 - k / Math.max(1, n)));
-      ctx.save(); ctx.translate(dx, dy);
-      ground(function () { letters('rgb(' + shade + ',' + shade + ',' + shade + ')'); ctx.fillStyle = '#a5000d'; ctx.fillRect(hx - L.hw / 2, L.hy - L.hh / 2, L.hw, L.hh); });
-      ctx.restore();
+    // extrusion: layers stacked along the camera's "up", far ones lighter (each layer is one drawImage of a cached bitmap)
+    var step = Math.max(4, P.d / 12), n = Math.floor(P.d / step);   // at most 12 layers
+    if (n > 0) {
+      // the grey sides are drawn into a half-resolution buffer (a quarter of the pixels), the black faces stay sharp
+      var pad = 20, bx = L.xU - pad, by = L.base - CAP * L.fs - pad, bw = L.xMA + L.wMA - L.xU + pad * 2, bh = CAP * L.fs + pad * 2;
+      var main = ctx, hb = layers.half;
+      if (!hb || hb.width !== Math.ceil(main.canvas.width / 2) || hb.height !== Math.ceil(main.canvas.height / 2)) { hb = layers.half = document.createElement('canvas'); hb.width = Math.ceil(main.canvas.width / 2); hb.height = Math.ceil(main.canvas.height / 2); }
+      ctx = hb.getContext('2d'); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, hb.width, hb.height); ctx.setTransform(VIEW.s / 2, 0, 0, VIEW.s / 2, VIEW.ox / 2, VIEW.oy / 2);
+      for (var k = n; k >= 1; k--) {
+        var dx = Math.cos(P.ang) * k * step, dy = Math.sin(P.ang) * k * step, lv = Math.round(5 * (1 - k / n));
+        var shade = Math.round(lerp(232, 150, lv / 5));
+        var sp = sprite('city' + lv, bw, bh, function (x) { text(x, 'U', pad, bh - pad, L.fs, 700, 'rgb(' + shade + ',' + shade + ',' + shade + ')', 'left'); text(x, 'MA', L.xMA - L.xU + pad, bh - pad, L.fs, 700, 'rgb(' + shade + ',' + shade + ',' + shade + ')', 'left'); });
+        ctx.save(); ctx.translate(dx, dy);
+        ground(function () { ctx.drawImage(sp.c, bx, by, bw, bh); ctx.fillStyle = '#a5000d'; ctx.fillRect(hx - L.hw / 2, L.hy - L.hh / 2, L.hw, L.hh); });
+        ctx.restore();
+      }
+      ctx = main; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(hb, 0, 0, main.canvas.width, main.canvas.height); ctx.restore();
     }
     ground(function () { letters(BLACK); ctx.fillStyle = RED; ctx.fillRect(hx - L.hw / 2, L.hy - L.hh / 2, L.hw, L.hh); });
     if (t >= 7.5) { var e = eOut(seg(t, 7.5, 7.85)); label(ctx, 'IN TOKYO, SHIBUYA', 120 - (1 - e) * 80, 960, 'left'); }
   }
 
-  // Bar 5 (8–10 s) DATA / UI: the street grid falls flat into a timeline; 2000 → 2026 rolls; bars rise
-  var BASE = 790, X0 = 200, STEP = 1520 / 26;
+  // Bar 5 (8–10 s) DATA / UI: the street grid falls flat into a timeline; 2000 → 2027 rolls; bars rise
+  var NT = 27, BASE = 790, X0 = 200, STEP = 1520 / NT;   // ticks 0..27 = 2000..2027
   function tickX(i) { return X0 + i * STEP; }
-  function barH(i) { return 60 + 300 * hash(i) * (.55 + .45 * i / 26); }
+  function barH(i) { return 60 + 300 * hash(i) * (.55 + .45 * i / NT); }
   function odometer(ctx, v, cx, base, fs) {
     var s = '' + Math.floor(v), dw = mw(ctx, '0', 700) * fs, x = cx - dw * 2;
     var frac = v - Math.floor(v), digits = s.split('').map(Number);
@@ -190,12 +211,12 @@
     bg(ctx, WHITE);
     var m = eInOut(seg(t, 8, 8.4)), L = uma(ctx, CX, CY, umaFs(ctx, 1250));
     ctx.fillStyle = BLACK;
-    for (var i = 0; i <= 26; i++) {           // grid lines fold into ticks
-      var fx = i <= 20 ? i * 96 : W + (i - 20) * 96, tx = tickX(i), tall = i % 10 === 0 || i === 26 ? 44 : 22;
+    for (var i = 0; i <= NT; i++) {           // grid lines fold into ticks
+      var fx = i <= 20 ? i * 96 : W + (i - 20) * 96, tx = tickX(i), tall = i % 10 === 0 || i === NT ? 44 : 22;
       var x = lerp(fx, tx, m), top = lerp(0, BASE - tall, m), bot = lerp(H, BASE, m);
       ctx.fillRect(x - 1, top, 2, bot - top);
     }
-    var hl = lerp(W, tickX(26) - tickX(0) + 2, m);
+    var hl = lerp(W, tickX(NT) - tickX(0) + 2, m);
     for (var j = 0; j <= 11; j++) ctx.fillRect(lerp(CX - W / 2, X0 - 1, m), lerp(j * 96 + 12, BASE, m) - 1, hl, 2);
     if (m < 1) {                              // the letters fold down into the baseline
       ctx.save(); ctx.translate(0, BASE); ctx.scale(1, 1 - m); ctx.translate(0, -BASE); ctx.translate(0, (BASE - CY) * m);
@@ -206,15 +227,15 @@
     var hm = eInOut(seg(t, 8, 8.4)), mh = lerp(L.hh, 120, hm) + 140 * eOut(seg(t, 9.5, 9.85)), mw_ = lerp(L.hw, 8, hm);
     var mx = lerp(L.hx, tickX(0), hm), my = lerp(L.hy, BASE - mh / 2, hm);
     // bars
-    for (var b = 0; b <= 26; b++) { var e = eOut(seg(t, 9 + b * .012, 9.35 + b * .012)), h = barH(b) * e; if (h > 0) ctx.fillRect(tickX(b) - 11, BASE - h, 22, h); }
+    for (var b = 0; b <= NT; b++) { var e = eOut(seg(t, 9 + b * .012, 9.35 + b * .012)), h = barH(b) * e; if (h > 0) ctx.fillRect(tickX(b) - 11, BASE - h, 22, h); }
     ctx.fillStyle = RED; ctx.fillRect(mx - mw_ / 2, my - mh / 2, mw_, mh);
     // counter + cursor + labels
     if (t >= 8.5) {
-      var ce = eOut(seg(t, 8.5, 8.85)), v = 2000 + 26 * eInOut(seg(t, 8.6, 9.85));
-      ctx.save(); ctx.beginPath(); ctx.rect(-W, -H, W * 3, BASE - 60 + H); ctx.clip(); odometer(ctx, Math.min(v, 2026), CX, lerp(BASE + 300, 470, ce), 300); ctx.restore();
-      [[0, '2000'], [10, '2010'], [20, '2020'], [26, '2026']].forEach(function (a, i) { var e = eOut(seg(t, 8.55 + i * .06, 8.85 + i * .06)); if (e > 0) text(ctx, a[1], tickX(a[0]), BASE + 44 + (1 - e) * 24, 20, 500, BLACK, 'center', 4); });
+      var ce = eOut(seg(t, 8.5, 8.85)), v = 2000 + NT * eInOut(seg(t, 8.6, 9.85));
+      ctx.save(); ctx.beginPath(); ctx.rect(-W, -H, W * 3, BASE - 60 + H); ctx.clip(); odometer(ctx, Math.min(v, 2000 + NT), CX, lerp(BASE + 300, 470, ce), 300); ctx.restore();
+      [[0, '2000'], [10, '2010'], [20, '2020'], [NT, '2027']].forEach(function (a, i) { var e = eOut(seg(t, 8.55 + i * .06, 8.85 + i * .06)); if (e > 0) text(ctx, a[1], tickX(a[0]), BASE + 44 + (1 - e) * 24, 20, 500, BLACK, 'center', 4); });
     }
-    if (t >= 9) { var cx = lerp(tickX(0), tickX(26), eInOut(seg(t, 9, 9.85))); ctx.fillStyle = BLACK; ctx.fillRect(cx - .5, BASE - 420, 1, 420); ctx.fillRect(cx - 5, BASE - 425, 10, 10); }
+    if (t >= 9) { var cx = lerp(tickX(0), tickX(NT), eInOut(seg(t, 9, 9.85))); ctx.fillStyle = BLACK; ctx.fillRect(cx - .5, BASE - 420, 1, 420); ctx.fillRect(cx - 5, BASE - 425, 10, 10); }
     if (t >= 9.5) { var se = eOut(seg(t, 9.5, 9.8)); label(ctx, 'SINCE 2000', tickX(0) + 20 + (1 - se) * 60, BASE - 230, 'left', RED); }
   }
 
@@ -223,10 +244,11 @@
   function marquee(ctx, t) {
     bg(ctx, WHITE);
     var steps = 0; for (var b = 10.5; b < 12; b += .5) steps += eOut(seg(t, b, b + .3));
-    var fs = 44, lw = mw(ctx, LINE, 700) * fs + 0;
+    var fs = 44, lw = mw(ctx, LINE, 700) * fs, rh = fs * 1.3;
+    var row = sprite('marquee', lw, rh, function (x) { text(x, LINE, 0, fs, fs, 700, BLACK, 'left'); });
     for (var r = 0; r < 18; r++) {
       var dir = r % 2 ? 1 : -1, off = ((dir * steps * 380 + r * 233) % lw + lw) % lw;
-      for (var x = -off - lw; x < W + lw; x += lw) text(ctx, LINE, x, 70 + r * 62, fs, 700, BLACK, 'left');
+      for (var x = -off - lw; x < W + lw; x += lw) ctx.drawImage(row.c, x, 70 + r * 62 - fs, lw, rh);
     }
   }
   function windowLayer(ctx, t) {
@@ -242,9 +264,9 @@
   function bar6(ctx, t) {
     if (t < 10.5) {
       bar5(ctx, 9.999); ctx.fillStyle = BLACK;
-      for (var i = 0; i <= 26; i++) {
+      for (var i = 0; i <= NT; i++) {
         var m = eInOut(seg(t, 10 + i * .006, 10.38 + i * .006)), x = tickX(i), h = barH(i);
-        var left = lerp(x - 11, i === 0 ? -40 : x - STEP / 2 - 1, m), right = lerp(x + 11, i === 26 ? W + 40 : x + STEP / 2 + 1, m);
+        var left = lerp(x - 11, i === 0 ? -40 : x - STEP / 2 - 1, m), right = lerp(x + 11, i === NT ? W + 40 : x + STEP / 2 + 1, m);
         var top = lerp(BASE - h, -40, m), bot = lerp(BASE, H + 40, m);
         ctx.fillRect(left, top, right - left, bot - top);
       }
@@ -253,38 +275,80 @@
     marquee(ctx, t); blit(ctx, windowLayer(ctx, t));
   }
 
-  // Bar 7 (12–14 s) STRONGEST: the wall leaves in slices on 8th notes; each slice snaps a slice of the giant U-MA into place
-  var ORDER = [3, 4, 2, 5, 1, 6, 0, 7];   // slice index → hit number (center out)
-  function bar7(ctx, t) {
-    var hits = ORDER.map(function (o) { return 12 + o * .25; }), sh = H / 8;
-    var Lg = uma(ctx, CX, CY, umaFs(ctx, 1720));
-    var last = 12; hits.forEach(function (h) { if (t >= h && h > last) last = h; });
-    var push = 1 + .05 * (1 - eOut(seg(t, last, last + .25)));
-    bg(ctx, WHITE);
-    for (var k = 0; k < 8; k++) {
-      (function (k) {
-        ctx.save(); ctx.beginPath(); ctx.rect(-W, k === 0 ? -H : k * sh, W * 3, k === 0 || k === 7 ? sh + H : sh); ctx.clip();
-        trail(ctx, t, function (tt) {
-          var dx = (k % 2 ? 1 : -1) * 700 * (1 - eOut(seg(tt, hits[k], hits[k] + .25)));
-          ctx.save(); ctx.translate(dx, 0); ctx.translate(CX, CY); ctx.scale(push, push); ctx.translate(-CX, -CY); drawUMA(ctx, Lg, BLACK, false); ctx.restore();
-        });
-        ctx.restore();
-      })(k);
+  // Bar 7 (12–14 s) STRONGEST: "SPEED, QUALITY and SURPRISE !" — each word moves the way it means.
+  // The wall leaves in fast slices (SPEED), letters land on guides (QUALITY), the screen flips (SURPRISE),
+  // and the red hyphen stands up to become "!" — then lies back down as U-MA's hyphen.
+  var frozen = null;
+  function frozenWall(ctx) {   // the end of bar 6, drawn once and reused
+    var c = ctx.canvas;
+    if (!frozen || frozen.width !== c.width || frozen.height !== c.height || frozen._s !== VIEW.s) {
+      var mq = layer(ctx, 'mq'); marquee(mq, 11.999);
+      var wall = windowLayer(ctx, 11.999);
+      mq.save(); mq.setTransform(1, 0, 0, 1, 0, 0); mq.drawImage(wall.canvas, 0, 0); mq.restore();
+      frozen = document.createElement('canvas'); frozen.width = c.width; frozen.height = c.height; frozen._s = VIEW.s;
+      frozen.getContext('2d').drawImage(mq.canvas, 0, 0);
     }
-    // the red hyphen: snaps in with the middle slices, then on the last hit stretches across the screen and back
-    var str = t < 13.75 ? 0 : eOut(seg(t, 13.75, 13.88)) * (1 - eInOut(seg(t, 13.88, 14)));
-    var hw = Lg.hw * push * (1 + 9 * str);
-    ctx.fillStyle = RED; ctx.fillRect(Lg.hx - hw / 2, Lg.hy - Lg.hh * push / 2, hw, Lg.hh * push);
-    // the wall, sliced
-    var wall = windowLayer(ctx, 11.999);
-    var mq = layer(ctx, 'mq'); marquee(mq, 11.999); mq.save(); mq.setTransform(1, 0, 0, 1, 0, 0); mq.drawImage(wall.canvas, 0, 0); mq.restore();
-    for (var j = 0; j < 8; j++) {
-      (function (j) {
-        if (t >= hits[j] + .2) return;
-        ctx.save(); ctx.beginPath(); ctx.rect(-W, j === 0 ? -H : j * sh, W * 3, j === 0 || j === 7 ? sh + H : sh); ctx.clip();
-        trail(ctx, t, function (tt) { var dx = (j % 2 ? -1 : 1) * (W + 200) * eIn(seg(tt, hits[j], hits[j] + .2)); blit(ctx, mq, dx); });
+    return frozen;
+  }
+  function bar7(ctx, t) {
+    var sh = H / 8, Lg = uma(ctx, CX, CY, umaFs(ctx, 1720));
+    bg(ctx, WHITE);
+    // SPEED, — whips in from the right as the wall leaves, and out to the left
+    if (t < 12.75) {
+      var fsS = fitFs(ctx, 'SPEED,', 700, 1600, 640);
+      trail(ctx, t, function (tt) {
+        var x = CX + (1 - eOut(seg(tt, 12.02, 12.3))) * 2600 - eIn(seg(tt, 12.5, 12.72)) * 2600;
+        text(ctx, 'SPEED,', x, CY + CAP * fsS / 2, fsS, 700, BLACK, 'center');
+      });
+    }
+    // QUALITY — guides draw, then each letter drops exactly onto them
+    if (t >= 12.5 && t < 13.25) {
+      var fsQ = fitFs(ctx, 'QUALITY', 700, 1500, 600), wQ = mw(ctx, 'QUALITY', 700) * fsQ, xq = CX - wQ / 2, baseQ = CY + CAP * fsQ / 2;
+      var g = eOut(seg(t, 12.5, 12.7));
+      ctx.fillStyle = BLACK; ctx.fillRect(CX - W / 2 * g, baseQ - 1, W * g, 2); ctx.fillRect(CX - W / 2 * g, baseQ - CAP * fsQ - 1, W * g, 2);
+      'QUALITY'.split('').forEach(function (c, i) {
+        var xi = xq + mw(ctx, 'QUALITY'.slice(0, i), 700) * fsQ, gl = eOut(seg(t, 12.52 + i * .02, 12.7 + i * .02));
+        ctx.fillStyle = BLACK; ctx.fillRect(xi - 1, CY - H / 2 * gl, 2, H * gl);
+        trail(ctx, t, function (tt) { var d = -(1 - eOut(seg(tt, 12.58 + i * .045, 12.8 + i * .045))) * H; text(ctx, c, xi, baseQ + d, fsQ, 700, BLACK, 'left'); });
+      });
+    }
+    // and SURPRISE — the screen flips to black, the letters turn over into view
+    if (t >= 13 && t < 13.66) {
+      var e1 = eInOut(seg(t, 13, 13.18)), e2 = eInOut(seg(t, 13.5, 13.66)), ph = H * (t < 13.5 ? e1 : 1 - e2);
+      ctx.save(); ctx.beginPath(); ctx.rect(-W * 4, CY - (ph >= H ? H * 8 : ph / 2), W * 9, ph >= H ? H * 17 : ph); ctx.clip();
+      bg(ctx, BLACK);
+      var fsP = fitFs(ctx, 'SURPRISE', 700, 1500, 560), wP = mw(ctx, 'SURPRISE', 700) * fsP, xp = CX - wP / 2, baseP = CY + CAP * fsP / 2 + 40;
+      var an = eOut(seg(t, 13.02, 13.2)); text(ctx, 'and', CX, baseP - CAP * fsP - 50 + (1 - an) * 30, 64, 500, WHITE, 'center', 12);
+      'SURPRISE'.split('').forEach(function (c, i) {
+        var wc = mw(ctx, c, 700) * fsP, xi = xp + mw(ctx, 'SURPRISE'.slice(0, i), 700) * fsP, f = eInOut(seg(t, 13.06 + i * .03, 13.26 + i * .03));
+        var sx = lerp(-1, 1, f); if (Math.abs(sx) < .02) return;
+        ctx.save(); ctx.translate(xi + wc / 2, 0); ctx.scale(sx, 1); text(ctx, c, -wc / 2, baseP, fsP, 700, WHITE, 'left'); ctx.restore();
+      });
+      ctx.restore();
+    }
+    // ! — the red hyphen stands up into an exclamation mark (with the red dot of frame 1), then lies back down
+    if (t >= 13.5) {
+      var up = eOut(seg(t, 13.5, 13.7)), down = eInOut(seg(t, 13.75, 14)), sc = spring(seg(t, 13.5, 13.66));
+      var len = lerp(lerp(Lg.hw, 330, up), Lg.hw, down), th = lerp(lerp(Lg.hh, 74, up), Lg.hh, down);
+      var x = lerp(CX, Lg.hx, down), y = lerp(lerp(CY, CY - 70, up), CY, down), rot = lerp(Math.PI / 2 * up, 0, down);
+      var dr = 40 * spring(seg(t, 13.58, 13.75)) * (1 - eIn(seg(t, 13.75, 13.95)));
+      if (dr > .5) { ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(CX, CY + 175, dr, 0, Math.PI * 2); ctx.fill(); }
+      trail(ctx, t, function (tt) {
+        var o = 1 - eOut(seg(tt, 13.75, 14));
+        if (o >= 1) return;
+        text(ctx, 'U', Lg.xU - o * 1500, Lg.base, Lg.fs, 700, BLACK, 'left'); text(ctx, 'MA', Lg.xMA + o * 1500, Lg.base, Lg.fs, 700, BLACK, 'left');
+      });
+      ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.fillStyle = RED; ctx.fillRect(-len * sc / 2, -th * sc / 2, len * sc, th * sc); ctx.restore();
+    }
+    // the wall leaves in eight fast slices
+    if (t < 12.5) {
+      var fw = frozenWall(ctx);
+      for (var j = 0; j < 8; j++) {
+        var hj = 12 + j * .015; if (t >= hj + .14) continue;
+        ctx.save(); ctx.beginPath(); ctx.rect(-W * 4, j === 0 ? -H * 8 : j * sh, W * 9, j === 0 || j === 7 ? sh + H * 8 : sh); ctx.clip();
+        (function (j, hj) { trail(ctx, t, function (tt) { blitC(ctx, fw, (j % 2 ? -1 : 1) * (W + 300) * eIn(seg(tt, hj, hj + .14))); }); })(j, hj);
         ctx.restore();
-      })(j);
+      }
     }
   }
 
@@ -318,5 +382,7 @@
     else if (t < 10) bar5(ctx, t); else if (t < 12) bar6(ctx, t); else if (t < 14) bar7(ctx, t); else bar8(ctx, t);
   }
 
-  global.UMA_REEL = { W: W, H: H, DUR: DUR, init: init, draw: draw, setBlurSamples: function (n) { BLUR_SAMPLES = Math.max(1, n | 0); } };
+  // build every cached bitmap/layer for this canvas size up front, so playback never stalls on first use
+  function prewarm(ctx, pw, ph) { [7.25, 10.75, 11.5, 12.05].forEach(function (t) { draw(ctx, t, pw, ph); }); }
+  global.UMA_REEL = { W: W, H: H, DUR: DUR, init: init, draw: draw, prewarm: prewarm, setBlurSamples: function (n) { BLUR_SAMPLES = Math.max(1, n | 0); } };
 })(typeof window !== 'undefined' ? window : this);

@@ -25,7 +25,9 @@
     root.style.marginLeft = (-root.getBoundingClientRect().left) + 'px';
     var top = root.getBoundingClientRect().top + window.pageYOffset;
     root.style.height = (top > 0 && top < vh * .4 ? vh - top : vh) + 'px';
-    var dpr = Math.min(2, window.devicePixelRatio || 1);
+    // sharp but light: at most 1.5x, and at most ~2.6 million canvas pixels
+    var dpr = Math.min(1.5, window.devicePixelRatio || 1), px = root.clientWidth * root.clientHeight;
+    if (px * dpr * dpr > 2.6e6) dpr = Math.max(1, Math.sqrt(2.6e6 / px));
     cv.width = Math.round(root.clientWidth * dpr); cv.height = Math.round(root.clientHeight * dpr);
   }
 
@@ -33,13 +35,14 @@
 
   function start() {
     fit(true); REEL.init(ctx); REEL.setBlurSamples(1);   // live playback: real 60 fps motion, no blur copies
+    REEL.prewarm(ctx, cv.width, cv.height); REEL.draw(ctx, 0, cv.width, cv.height);
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) { REEL.draw(ctx, 14.3, cv.width, cv.height); return; }
     var t0 = performance.now(), visible = true, raf = 0;
     function tick(now) { raf = 0; if (!visible) return; REEL.draw(ctx, (now - t0) / 1000, cv.width, cv.height); raf = requestAnimationFrame(tick); }
     if ('IntersectionObserver' in window) new IntersectionObserver(function (e) { visible = e[0].isIntersecting; if (visible && !raf) raf = requestAnimationFrame(tick); }).observe(root);
     raf = requestAnimationFrame(tick);
-    var tm; window.addEventListener('resize', function () { clearTimeout(tm); tm = setTimeout(function () { fit(false); }, 120); });
+    var tm; window.addEventListener('resize', function () { clearTimeout(tm); tm = setTimeout(function () { var w = cv.width; fit(false); if (cv.width !== w) REEL.prewarm(ctx, cv.width, cv.height); }, 120); });
     window.addEventListener('orientationchange', function () { setTimeout(function () { fit(true); }, 300); });
   }
   var face = window.FontFace ? new FontFace('Jost', 'url(' + base + 'fonts/Jost.ttf)', { weight: '100 900' }) : null;
