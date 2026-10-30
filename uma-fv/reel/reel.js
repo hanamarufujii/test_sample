@@ -1,9 +1,22 @@
 /* U-MA showreel — "一本の赤い線が、U-MAを留めるクリップになる。" (One red wire becomes the clip that holds U-MA together.)
    15 s at 120 BPM. Starts and ends on the same red dot; particles and line art carry WHAT WE DO.
    Pure function of time: UMA_REEL.draw(ctx, t, pixelWidth, pixelHeight). No timers, no state between frames.
-   Design space is 1920x1080; it is fitted ("contain") into any canvas, with backgrounds bled to the edges. */
+   Design space is 1920x1080 (or 1080x1920 when set to portrait, e.g. for a vertical video); it is fitted ("contain")
+   into any canvas, with backgrounds bled to the edges. */
 (function (global) {
   var W = 1920, H = 1080, CX = 960, CY = 540, DUR = 15;
+  // everything that moves between landscape and portrait (portrait keeps clear of the Reels UI at the top and bottom)
+  var PORTRAIT = false, LY = null;
+  function layout(portrait) {
+    if (LY && PORTRAIT === portrait) return;
+    PORTRAIT = portrait; W = portrait ? 1080 : 1920; H = portrait ? 1920 : 1080; CX = W / 2; CY = H / 2; FORMS = null;
+    LY = portrait
+      ? { logo: 960, fit: 980, end: 880, pcx: CX, pcy: CY - 180, word: 920, wbase: 1430, top: 320, side: 80, bot: 1460,
+          x0: 90, base: 1300, odo: 940, ofs: 250, city: 560, cfs: 62, dot: 56, cap: 30, lab: 30 }
+      : { logo: 1400, fit: 1720, end: 1000, pcx: CX + 250, pcy: CY - 40, word: 1300, wbase: 940, top: 150, side: 120, bot: 960,
+          x0: 200, base: 790, odo: 470, ofs: 300, city: 190, cfs: 76, dot: 32, cap: 11, lab: 24 };
+    PCX = LY.pcx; PCY = LY.pcy; X0 = LY.x0; BASE = LY.base; STEP = (W - 2 * X0) / NT;
+  }
   var WHITE = '#ffffff', BLACK = '#0b0b0b', RED = '#e60012';
   var FONT = '"Jost", "Futura", "Futura PT", "Century Gothic", sans-serif';
   var BLUR_SAMPLES = 24, SHUTTER = .5 / 60;   // 180° shutter: each moving element is averaged over the last half frame (1 sample = off)
@@ -85,14 +98,14 @@
     bg(ctx, WHITE);
     if (t < 1) {
       var pul = t < .5 ? (t < .2 ? eOut(seg(t, 0, .2)) : 1 - eInOut(seg(t, .2, .5))) : 0;
-      var st = eOut(seg(t, .5, .9)), w = lerp(32, W + 400, st) * (1 + .7 * pul), h = lerp(32, 8, st) * (1 + .7 * pul);
+      var st = eOut(seg(t, .5, .9)), w = lerp(LY.dot, W + 400, st) * (1 + .7 * pul), h = lerp(LY.dot, 8, st) * (1 + .7 * pul);
       rrect(ctx, CX - w / 2, CY - h / 2, w, h, h / 2, RED); return;
     }
     var g = t < 1.5 ? 380 * eOut(seg(t, 1, 1.4)) : lerp(380, H + 60, eInOut(seg(t, 1.5, 2)));
     ctx.fillStyle = BLACK; ctx.fillRect(-W, CY - g / 2, W * 3, g);
     ctx.fillStyle = RED; ctx.fillRect(-W, CY - g / 2 - 4, W * 3, 8); ctx.fillRect(-W, CY + g / 2 - 4, W * 3, 8);
     if (t >= 1.5) {
-      var L = logoL(CX, CY, 1400);
+      var L = logoL(CX, CY, LY.logo);
       ctx.save(); ctx.beginPath(); ctx.rect(-W, CY - g / 2 + 4, W * 3, Math.max(0, g - 8)); ctx.clip();
       trail(ctx, t, function (tt) {
         var s = lerp(2.6, 1, eOut(seg(tt, 1.5, 1.85)));
@@ -105,8 +118,8 @@
   // Bar 2 (2–4 s) KINETIC TYPE: A VERY / CREATIVE / DESIGN / STUDIO push each other out, one per beat
   var WORDS = ['U-MA', 'A VERY', 'CREATIVE', 'DESIGN', 'STUDIO'];
   function wordAt(ctx, k, y, track) {
-    if (k === 0) { letters(ctx, logoL(CX, CY + y, 1400), WHITE); return; }
-    var fs = fitFs(ctx, WORDS[k], 700, 1720, 760);
+    if (k === 0) { letters(ctx, logoL(CX, CY + y, LY.logo), WHITE); return; }
+    var fs = fitFs(ctx, WORDS[k], 700, LY.fit, 760);
     text(ctx, WORDS[k], CX, CY + y + CAP * fs / 2, fs, 700, WHITE, 'center', track * fs);
   }
   function bar2(ctx, t) {
@@ -125,7 +138,7 @@
   // Each formation is a set of 3D polylines: the particles sit on them, the same lines are drawn as thin line art,
   // and copies of them ripple outward until they cover the screen.
   var WHAT = ['WEB', 'GRAPHIC', 'MUSIC', 'MOVIE', 'SNS', 'AI', 'VIBE CODING', 'APP'];
-  var PCX = CX + 250, PCY = CY - 40, FOCAL = 1600;
+  var PCX = 0, PCY = 0, FOCAL = 1600;
   function ring(cx, cy, r, n) { var a = []; for (var i = 0; i <= n; i++) { var th = i / n * Math.PI * 2; a.push([cx + Math.cos(th) * r, cy + Math.sin(th) * r, 0]); } return a; }
   function rect3(x, y, w, h) { return [[x, y, 0], [x + w, y, 0], [x + w, y + h, 0], [x, y + h, 0], [x, y, 0]]; }
   function rrect3(x, y, w, h, r) {
@@ -158,8 +171,8 @@
     for (var q = 0; q < 12; q++) app.push(rrect3(-150 + (q % 3) * 108, -290 + Math.floor(q / 3) * 108, 84, 84, 20));
     // the street grid of bar 5, in screen coordinates (relative to the formation center)
     var gridL = [];
-    for (var gi = 0; gi <= 20; gi++) gridL.push(seg3(gi * 96 - PCX, -PCY, gi * 96 - PCX, H - PCY));
-    for (var gj = 0; gj <= 11; gj++) gridL.push(seg3(-PCX, gj * 96 + 12 - PCY, W - PCX, gj * 96 + 12 - PCY));
+    for (var gi = 0; gi <= Math.floor(W / 96); gi++) gridL.push(seg3(gi * 96 - PCX, -PCY, gi * 96 - PCX, H - PCY));
+    for (var gj = 0; gj <= Math.floor((H - 12) / 96); gj++) gridL.push(seg3(-PCX, gj * 96 + 12 - PCY, W - PCX, gj * 96 + 12 - PCY));
     return [web, graphic, music, movie, sns, ai, code, app, gridL];
   }
   // particles spread along the polylines by length (with a little scatter, so the lines look drawn with grain)
@@ -180,7 +193,7 @@
   }
   // the first formation: STUDIO itself, read from its own pixels
   function studioPoints(ctx, n) {
-    var fs = fitFs(ctx, 'STUDIO', 700, 1720, 760), k = .25;
+    var fs = fitFs(ctx, 'STUDIO', 700, LY.fit, 760), k = .25;
     var c = document.createElement('canvas'); c.width = Math.ceil(W * k); c.height = Math.ceil(H * k);
     var x = c.getContext('2d'); x.scale(k, k); text(x, 'STUDIO', CX, CY + CAP * fs / 2, fs, 700, '#000', 'center', 0);
     var d = x.getImageData(0, 0, c.width, c.height).data, px = [];
@@ -281,30 +294,30 @@
     }
     lineArt(ctx, t);
     var dis = t < 4.6;   // the black of STUDIO dissolves into halftone, from the middle out
-    if (dis) halftone(ctx, 36, function (x, y) { var d = Math.hypot(x - CX, y - CY) / 1100; return 36 * 1.5 * (1 - eInOut(seg(t, 4 + d * .25, 4.22 + d * .25))); }, BLACK);
+    if (dis) halftone(ctx, 36, function (x, y) { var d = Math.hypot(x - CX, y - CY) / (Math.max(W, H) * .58); return 36 * 1.5 * (1 - eInOut(seg(t, 4 + d * .25, 4.22 + d * .25))); }, BLACK);
     particles(ctx, t, 1, dis);
     k = Math.min(7, Math.floor((t - 4) / .5)); T = 4 + k * .5;
     // the word, rising into place on its beat; the scene label and counter
-    var wd = WHAT[k], fs = Math.min(250, fitFs(ctx, wd, 700, 1300)), base = 940, top = base - CAP * fs;
+    var wd = WHAT[k], fs = Math.min(250, fitFs(ctx, wd, 700, LY.word)), base = LY.wbase, top = base - CAP * fs;
     ctx.save(); ctx.beginPath(); ctx.rect(-W, top - 14, W * 3, CAP * fs + 40); ctx.clip();
     if (dis) ctx.globalCompositeOperation = 'difference';   // still on the black: the word shows white
-    trail(ctx, t, function (tt) { var e = eOut(seg(tt, T, T + .2)), o = eIn(seg(tt, T + .44, T + .5)); text(ctx, wd, 110, base + (1 - e) * CAP * fs * 1.15 - o * CAP * fs * 1.15, fs, 700, dis ? WHITE : BLACK, 'left', 0); });
+    trail(ctx, t, function (tt) { var e = eOut(seg(tt, T, T + .2)), o = eIn(seg(tt, T + .44, T + .5)); text(ctx, wd, LY.side - 10, base + (1 - e) * CAP * fs * 1.15 - o * CAP * fs * 1.15, fs, 700, dis ? WHITE : BLACK, 'left', 0); });
     ctx.globalCompositeOperation = 'source-over';
     ctx.restore();
     var le = eOut(seg(t, 4.05, 4.4)) * (1 - eIn(seg(t, 7.6, 7.75)));
     if (le > 0) {
       ctx.globalAlpha = le;
       if (dis) ctx.globalCompositeOperation = 'difference';
-      label(ctx, 'WHAT WE DO', 120, 150, 'left', dis ? WHITE : BLACK);
+      label(ctx, 'WHAT WE DO', LY.side, LY.top, 'left', dis ? WHITE : BLACK);
       ctx.globalCompositeOperation = 'source-over';
-      label(ctx, '0' + (k + 1) + ' / 08', 1800, 150, 'right', RED);
+      label(ctx, '0' + (k + 1) + ' / 08', W - LY.side, LY.top, 'right', RED);
       ctx.globalAlpha = 1;
     }
   }
-  function label(ctx, str, x, y, align, color) { text(ctx, str, x, y, 24, 500, color || BLACK, align, 7.5); }
+  function label(ctx, str, x, y, align, color) { text(ctx, str, x, y, LY.lab, 500, color || BLACK, align, LY.lab * .31); }
 
   // Bar 5 (8–9.5 s, written on an 8–10 s clock) DATA / UI: the particles' street grid falls flat into a timeline; 2000 → 2027 rolls
-  var NT = 27, BASE = 790, X0 = 200, STEP = 1520 / NT;   // ticks 0..27 = 2000..2027
+  var NT = 27, BASE = 790, X0 = 200, STEP = 1520 / NT;   // set by layout()   // ticks 0..27 = 2000..2027
   function tickX(i) { return X0 + i * STEP; }
   function barH(i) { return 60 + 300 * hash(i) * (.55 + .45 * i / NT); }
   function odometer(ctx, v, cx, base, fs) {
@@ -324,14 +337,14 @@
     var m = eInOut(seg(t, 8, 8.4));
     ctx.fillStyle = BLACK;
     for (var i = 0; i <= NT; i++) {           // grid lines fold into ticks
-      var fx = i <= 20 ? i * 96 : W + (i - 20) * 96, tx = tickX(i), tall = i % 10 === 0 || i === NT ? 44 : 22;
+      var nv = Math.floor(W / 96), fx = i <= nv ? i * 96 : W + (i - nv) * 96, tx = tickX(i), tall = i % 10 === 0 || i === NT ? 44 : 22;
       var x = lerp(fx, tx, m), top = lerp(0, BASE - tall, m), bot = lerp(H, BASE, m);
       ctx.fillRect(x - 1, top, 2, bot - top);
     }
     var hl = lerp(W, tickX(NT) - tickX(0) + 2, m);
-    for (var j = 0; j <= 11; j++) ctx.fillRect(lerp(CX - W / 2, X0 - 1, m), lerp(j * 96 + 12, BASE, m) - 1, hl, 2);
+    for (var j = 0; j <= Math.floor((H - 12) / 96); j++) ctx.fillRect(lerp(CX - W / 2, X0 - 1, m), lerp(j * 96 + 12, BASE, m) - 1, hl, 2);
     var it = eOut(seg(t, 8.15, 8.5));
-    if (it > 0) { ctx.save(); ctx.beginPath(); ctx.rect(0, 100, W, 110); ctx.clip(); text(ctx, 'IN TOKYO, SHIBUYA', X0, 190 + (1 - it) * 100, 76, 700, BLACK, 'left', 6); ctx.restore(); }
+    if (it > 0) { ctx.save(); ctx.beginPath(); ctx.rect(0, LY.city - 90, W, 110); ctx.clip(); text(ctx, 'IN TOKYO, SHIBUYA', X0, LY.city + (1 - it) * 100, LY.cfs, 700, BLACK, 'left', 6); ctx.restore(); }
     // the red marker at 2000 grows out of the baseline
     var hm = eOut(seg(t, 8.2, 8.5)), mh = 120 * hm + 140 * eOut(seg(t, 9.5, 9.85)), mw_ = 8, mx = tickX(0), my = BASE - mh / 2;
     // bars
@@ -340,7 +353,7 @@
     // counter + cursor + labels
     if (t >= 8.5) {
       var ce = eOut(seg(t, 8.5, 8.85)), v = 2000 + NT * eInOut(seg(t, 8.6, 9.85));
-      ctx.save(); ctx.beginPath(); ctx.rect(-W, -H, W * 3, BASE - 60 + H); ctx.clip(); odometer(ctx, Math.min(v, 2000 + NT), CX, lerp(BASE + 300, 470, ce), 300); ctx.restore();
+      ctx.save(); ctx.beginPath(); ctx.rect(-W, -H, W * 3, BASE - 60 + H); ctx.clip(); odometer(ctx, Math.min(v, 2000 + NT), CX, lerp(BASE + 300, LY.odo, ce), LY.ofs); ctx.restore();
       [[0, '2000'], [10, '2010'], [20, '2020'], [NT, '2027']].forEach(function (a, i) { var e = eOut(seg(t, 8.55 + i * .06, 8.85 + i * .06)); if (e > 0) text(ctx, a[1], tickX(a[0]), BASE + 44 + (1 - e) * 24, 20, 500, BLACK, 'center', 4); });
     }
     if (t >= 9) { var cx = lerp(tickX(0), tickX(NT), eInOut(seg(t, 9, 9.85))); ctx.fillStyle = BLACK; ctx.fillRect(cx - .5, BASE - 420, 1, 420); ctx.fillRect(cx - 5, BASE - 425, 10, 10); }
@@ -352,7 +365,7 @@
   // The timeline is pushed out with speed lines (SPEED), letters land on guides (QUALITY), the screen flips (SURPRISE),
   // and the red hyphen stands up to become "!" — then lies back down as U-MA's hyphen.
   function bar7(ctx, t) {
-    var sh = H / 8, LF = logoL(CX, CY, 1000);
+    var LF = logoL(CX, CY, LY.end);
     bg(ctx, WHITE);
     if (t < 12.25) trail(ctx, t, function (tt) { ctx.save(); ctx.translate(-eIn(seg(tt, 12, 12.22)) * (W + 400), 0); bar5(ctx, 9.999); ctx.restore(); });
     if (t < 12.75) {                          // speed lines tear across the screen
@@ -364,7 +377,7 @@
     }
     // SPEED, — whips in from the right as the wall leaves, and out to the left
     if (t < 12.75) {
-      var fsS = fitFs(ctx, 'SPEED,', 700, 1600, 640);
+      var fsS = fitFs(ctx, 'SPEED,', 700, LY.fit * .93, 640);
       trail(ctx, t, function (tt) {
         var x = CX + (1 - eOut(seg(tt, 12.02, 12.3))) * 2600 - eIn(seg(tt, 12.5, 12.72)) * 2600;
         text(ctx, 'SPEED,', x, CY + CAP * fsS / 2, fsS, 700, BLACK, 'center');
@@ -372,7 +385,7 @@
     }
     // QUALITY — guides draw, then each letter drops exactly onto them
     if (t >= 12.5 && t < 13.25) {
-      var fsQ = fitFs(ctx, 'QUALITY', 700, 1500, 600), wQ = mw(ctx, 'QUALITY', 700) * fsQ, xq = CX - wQ / 2, baseQ = CY + CAP * fsQ / 2;
+      var fsQ = fitFs(ctx, 'QUALITY', 700, LY.fit * .87, 600), wQ = mw(ctx, 'QUALITY', 700) * fsQ, xq = CX - wQ / 2, baseQ = CY + CAP * fsQ / 2;
       var g = eOut(seg(t, 12.5, 12.7));
       ctx.fillStyle = BLACK; ctx.fillRect(CX - W / 2 * g, baseQ - 1, W * g, 2); ctx.fillRect(CX - W / 2 * g, baseQ - CAP * fsQ - 1, W * g, 2);
       'QUALITY'.split('').forEach(function (c, i) {
@@ -389,7 +402,7 @@
       var be = eOut(seg(t, 13.02, 13.5)), bp = new Path2D();   // a burst of white particles behind the letters
       for (var bi = 0; bi < 260; bi++) { var ba = hash(bi + 300) * 6.283, br = be * (220 + 980 * hash(bi + 301)), bs = 4 * (1 - .6 * be); bp.rect(CX + Math.cos(ba) * br - bs / 2, CY + Math.sin(ba) * br * .7 - bs / 2, bs, bs); }
       ctx.globalAlpha = 1 - eIn(seg(t, 13.2, 13.5)); ctx.fillStyle = WHITE; ctx.fill(bp); ctx.globalAlpha = 1;
-      var fsP = fitFs(ctx, 'SURPRISE', 700, 1500, 560), wP = mw(ctx, 'SURPRISE', 700) * fsP, xp = CX - wP / 2, baseP = CY + CAP * fsP / 2 + 40;
+      var fsP = fitFs(ctx, 'SURPRISE', 700, LY.fit * .87, 560), wP = mw(ctx, 'SURPRISE', 700) * fsP, xp = CX - wP / 2, baseP = CY + CAP * fsP / 2 + 40;
       var an = eOut(seg(t, 13.02, 13.2)); text(ctx, 'and', CX, baseP - CAP * fsP - 50 + (1 - an) * 30, 64, 500, WHITE, 'center', 12);
       'SURPRISE'.split('').forEach(function (c, i) {
         var wc = mw(ctx, c, 700) * fsP, xi = xp + mw(ctx, 'SURPRISE'.slice(0, i), 700) * fsP, f = eInOut(seg(t, 13.06 + i * .03, 13.26 + i * .03));
@@ -420,11 +433,11 @@
   var T_LOGO = 12.5;
   function bar8(ctx, t) {
     bg(ctx, WHITE);
-    var LF = logoL(CX, CY, 1000), out = eIn(seg(t, 14.35, 14.6)), inn = eOut(seg(t, T_LOGO, T_LOGO + .25)), slide = (1 - inn) * 900 + out * 1500;
+    var LF = logoL(CX, CY, LY.end), out = eIn(seg(t, 14.35, 14.6)), inn = eOut(seg(t, T_LOGO, T_LOGO + .25)), slide = (1 - inn) * 900 + out * 1500;
     if (t >= T_LOGO) {
-      label(ctx, 'A VERY CREATIVE DESIGN STUDIO', 120 - slide, 150, 'left');
-      label(ctx, 'IN TOKYO, SHIBUYA', 120 - slide, 960, 'left');
-      label(ctx, 'SINCE 2000', 1800 + slide, 960, 'right');
+      label(ctx, 'A VERY CREATIVE DESIGN STUDIO', LY.side - slide, LY.top, 'left');
+      label(ctx, 'IN TOKYO, SHIBUYA', LY.side - slide, LY.bot, 'left');
+      label(ctx, 'SINCE 2000', W - LY.side + slide, LY.bot, 'right');
       var be = eOut(seg(t, T_LOGO, T_LOGO + 1.1)), bk = new Path2D(), rd = new Path2D();   // the logo lands: particles burst out and settle
       if (be < 1) {
         for (var i = 0; i < 220; i++) {
@@ -441,7 +454,7 @@
       else fullLogo(ctx, LF, INK);                       // the official logo, in its own color
       ctx.restore();
     }
-    var d = 32 * eOut(seg(t, 14.45, 14.8));
+    var d = LY.dot * eOut(seg(t, 14.45, 14.8));
     if (d > .5) rrect(ctx, CX - d / 2, CY - d / 2, d, d, d / 2, RED);
     afterText(ctx, eOut(seg(t, 14.6, 14.95)), null);
   }
@@ -455,10 +468,10 @@
   }
   function afterText(ctx, e, ti) {   // "Play again !" above, "Scroll down ↓" below
     if (e <= 0) return;
-    var fs = tiny(11), d = (1 - e) * 8, bob = ti == null ? 0 : 3 * Math.sin((ti - .5) * Math.PI);
+    var fs = tiny(LY.cap), d = (1 - e) * 8, bob = ti == null ? 0 : 3 * Math.sin((ti - .5) * Math.PI);
     ctx.globalAlpha = e;
-    bang(ctx, 'Play again', CX, CY - 32 + d, fs, 'center');
-    var y = CY + 32 + CAP * fs - d;
+    bang(ctx, 'Play again', CX, CY - LY.dot - fs * .2 + d, fs, 'center');
+    var y = CY + LY.dot + CAP * fs * .2 + CAP * fs - d;
     text(ctx, 'Scroll down', CX, y, fs, 500, BLACK, 'center', fs * .2);
     var a = fs * 1.3, ay = y + fs * .9 + bob, lw = Math.max(1, fs * .1);   // the arrow
     ctx.strokeStyle = BLACK; ctx.lineWidth = lw; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -468,12 +481,12 @@
   function idle(ctx, ti, pw, ph, still, played) {
     setView(ctx, pw, ph); bg(ctx, WHITE);
     var a = still || played ? 1 : spring(seg(ti, 0, .5)), phase = (((ti - .5) % .5) + .5) % .5 / .5;
-    var pul = still || ti < .5 ? 0 : 1 - eOut(Math.min(1, phase * 2.5)), r = 32 * a * (1 + .18 * pul);
+    var pul = still || ti < .5 ? 0 : 1 - eOut(Math.min(1, phase * 2.5)), r = LY.dot * a * (1 + .18 * pul);
     if (r > .5) rrect(ctx, CX - r / 2, CY - r / 2, r, r, r / 2, RED);
     if (played) { afterText(ctx, 1, still ? null : ti); return; }   // the reel already faded these in
     var e = still ? 1 : eOut(seg(ti, .45, .9));
     if (e > 0) {
-      var fs = tiny(11);
+      var fs = tiny(LY.cap);
       ctx.save(); ctx.beginPath(); ctx.rect(CX + 24, CY - 40, 600, 80); ctx.clip();
       bang(ctx, 'Click me', CX + 30 - (1 - e) * 40, CY + CAP * fs / 2, fs, 'left');
       ctx.restore();
@@ -481,6 +494,7 @@
   }
 
   function setView(ctx, pw, ph) {
+    layout(PORTRAIT);
     var s = Math.min(pw / W, ph / H);
     VIEW = { s: s, ox: (pw - W * s) / 2, oy: (ph - H * s) / 2, pw: pw, ph: ph };
     ctx.setTransform(s, 0, 0, s, VIEW.ox, VIEW.oy);
@@ -497,5 +511,5 @@
   // build the particle formations for this canvas size up front, so playback never stalls on first use
   function prewarm(ctx, pw, ph) { [4.1, 6.1, 9.6, 12.6].forEach(function (t) { draw(ctx, t, pw, ph); }); }
   global.UMA_REEL = { W: W, H: H, DUR: DUR, init: init, draw: draw, idle: idle, prewarm: prewarm,
-    setBlurSamples: function (n) { BLUR_SAMPLES = Math.max(1, n | 0); }, setDpr: function (d) { DPR = d || 1; } };
+    setBlurSamples: function (n) { BLUR_SAMPLES = Math.max(1, n | 0); }, setDpr: function (d) { DPR = d || 1; }, setPortrait: function (p) { layout(!!p); } };
 })(typeof window !== 'undefined' ? window : this);

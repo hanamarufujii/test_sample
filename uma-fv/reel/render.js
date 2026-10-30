@@ -1,23 +1,24 @@
-// node render.js beats|full <outdir>
+// node render.js beats|full <outdir> [portrait]
 //   beats: one frame per beat (mid-beat) + a contact sheet, to check before the full render
 //   full : 60 fps, 3 subframes per frame blended with ffmpeg tmix, plus the code-written soundtrack → MP4
 const { chromium } = require('playwright');
 const { execFileSync } = require('child_process');
 const fs = require('fs'), path = require('path');
-const [mode, out] = [process.argv[2] || 'beats', process.argv[3] || 'out'];
+const [mode, out, portrait] = [process.argv[2] || 'beats', process.argv[3] || 'out', process.argv[4] === 'portrait'];
+const [VW, VH] = portrait ? [1080, 1920] : [1920, 1080];
 (async () => {
   fs.mkdirSync(out, { recursive: true });
   const b = await chromium.launch({ args: ['--allow-file-access-from-files'] });
-  const p = await b.newPage({ viewport: { width: 1920, height: 1080 } });
+  const p = await b.newPage({ viewport: { width: VW, height: VH } });
   const errs = []; p.on('pageerror', e => errs.push(e.message));
-  await p.goto('file://' + path.join(__dirname, 'showreel.html'));
+  await p.goto('file://' + path.join(__dirname, 'showreel.html') + (portrait ? '?portrait' : ''));
   await p.evaluate(() => window.ready);
   const shot = async (t, file) => { await p.evaluate(t => seek(t), t); await p.screenshot({ path: file, type: 'png' }); };
   if (mode === 'beats') {
     const dir = path.join(out, 'beats'); fs.mkdirSync(dir, { recursive: true });
     for (let i = 0; i < 30; i++) await shot(i * .5 + .25, path.join(dir, `b${String(i).padStart(2, '0')}.png`));
     await shot(0, path.join(dir, 'loop_start.png')); await shot(14.999, path.join(dir, 'loop_end.png'));
-    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', path.join(dir, 'b%02d.png'), '-vf', 'scale=384:216,tile=6x5:padding=6:color=0x888888', '-frames:v', '1', path.join(out, 'contact.png')]);
+    execFileSync('ffmpeg', ['-y', '-loglevel', 'error', '-i', path.join(dir, 'b%02d.png'), '-vf', (portrait ? 'scale=216:384,tile=10x3' : 'scale=384:216,tile=6x5') + ':padding=6:color=0x888888', '-frames:v', '1', path.join(out, 'contact.png')]);
   } else {
     const dir = path.join(out, 'frames'); fs.mkdirSync(dir, { recursive: true });
     const N = 15 * 60;
