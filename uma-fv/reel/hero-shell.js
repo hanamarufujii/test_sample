@@ -30,6 +30,7 @@
     var dpr = Math.min(1.5, window.devicePixelRatio || 1), px = root.clientWidth * root.clientHeight;
     if (px * dpr * dpr > 2.6e6) dpr = Math.max(1, Math.sqrt(2.6e6 / px));
     cv.width = Math.round(root.clientWidth * dpr); cv.height = Math.round(root.clientHeight * dpr);
+    REEL.setDpr(cv.width / Math.max(1, root.clientWidth));   // keeps the small captions readable
   }
 
   var REEL = (function () { var window = {}; /*REEL*/ return window.UMA_REEL; })();
@@ -51,7 +52,7 @@
     }
     function play() {
       if (mode !== 'idle') return;
-      if (still) { REEL.draw(ctx, 14.5, cv.width, cv.height); return; }   // no motion: just show the logo
+      if (still) { REEL.draw(ctx, 13.5, cv.width, cv.height); return; }   // no motion: just show the logo
       mode = 'play'; t0 = performance.now(); root.style.cursor = 'default';
       if (!raf) raf = requestAnimationFrame(frame);
     }

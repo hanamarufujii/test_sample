@@ -24,16 +24,17 @@ window.renderAudio = async function () {
     g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(.001, t + len); s.connect(fl).connect(g).connect(out); s.start(t); s.stop(t + len + .02); }
   function boom(t) { var o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(30, t + .6);
     g.gain.setValueAtTime(.7, t); g.gain.exponentialRampToValueAtTime(.001, t + .7); o.connect(g).connect(out); o.start(t); o.stop(t + .75); burst(t, .18, 'lowpass', 2500, .5); }
-  for (var b = 0; b < 30; b++) kick(b * .5, b >= 24 && b < 28 ? 1 : .85);
+  for (var b = 0; b < 30; b++) kick(b * .5, b >= 19 && b < 24 ? 1 : .85);
   for (var h = 4; h < 28; h++) burst(h * .5 + .25, .05, 'highpass', 7000, .18);
-  for (var c = 0; c < 8; c++) burst(12 + c * .25, .12, 'bandpass', 1600, .45);           // the 8 slice hits of bar 7
-  [2, 4, 6, 8, 10, 12, 14].forEach(boom);
-  // riser into bar 7
+  for (var w = 0; w < 8; w++) burst(4 + w * .5, .1, 'bandpass', 2400, .3);                // one snap per WHAT WE DO word
+  [9.525, 10.125, 10.75, 11.375].forEach(function (c) { burst(c, .14, 'bandpass', 1600, .5); });   // SPEED, QUALITY, SURPRISE, !
+  [2, 4, 8, 9.5, 12.5].forEach(boom);
+  // riser into SPEED
   var rs = ac.createBufferSource(), rf = ac.createBiquadFilter(), rg = ac.createGain(); rs.buffer = noise; rs.loop = true; rf.type = 'bandpass'; rf.Q.value = 4;
-  rf.frequency.setValueAtTime(300, 10); rf.frequency.exponentialRampToValueAtTime(9000, 12); rg.gain.setValueAtTime(.0001, 10); rg.gain.exponentialRampToValueAtTime(.5, 11.98); rg.gain.setValueAtTime(.0001, 12);
-  rs.connect(rf).connect(rg).connect(out); rs.start(10); rs.stop(12.02);
-  var ro = ac.createOscillator(), rog = ac.createGain(); ro.type = 'sawtooth'; ro.frequency.setValueAtTime(110, 10); ro.frequency.exponentialRampToValueAtTime(880, 12);
-  rog.gain.setValueAtTime(.0001, 10); rog.gain.exponentialRampToValueAtTime(.12, 11.98); rog.gain.setValueAtTime(.0001, 12); ro.connect(rog).connect(out); ro.start(10); ro.stop(12.02);
+  rf.frequency.setValueAtTime(300, 8); rf.frequency.exponentialRampToValueAtTime(9000, 9.5); rg.gain.setValueAtTime(.0001, 8); rg.gain.exponentialRampToValueAtTime(.5, 9.48); rg.gain.setValueAtTime(.0001, 9.5);
+  rs.connect(rf).connect(rg).connect(out); rs.start(8); rs.stop(9.52);
+  var ro = ac.createOscillator(), rog = ac.createGain(); ro.type = 'sawtooth'; ro.frequency.setValueAtTime(110, 8); ro.frequency.exponentialRampToValueAtTime(880, 9.5);
+  rog.gain.setValueAtTime(.0001, 8); rog.gain.exponentialRampToValueAtTime(.12, 9.48); rog.gain.setValueAtTime(.0001, 9.5); ro.connect(rog).connect(out); ro.start(8); ro.stop(9.52);
   var buf = await ac.startRendering();
   // 16-bit PCM WAV
   var n = buf.length, ch = 2, data = new DataView(new ArrayBuffer(44 + n * ch * 2));

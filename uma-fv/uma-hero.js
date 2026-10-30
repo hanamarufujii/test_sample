@@ -30,10 +30,11 @@
     var dpr = Math.min(1.5, window.devicePixelRatio || 1), px = root.clientWidth * root.clientHeight;
     if (px * dpr * dpr > 2.6e6) dpr = Math.max(1, Math.sqrt(2.6e6 / px));
     cv.width = Math.round(root.clientWidth * dpr); cv.height = Math.round(root.clientHeight * dpr);
+    REEL.setDpr(cv.width / Math.max(1, root.clientWidth));   // keeps the small captions readable
   }
 
   var REEL = (function () { var window = {}; /* U-MA showreel — "一本の赤い線が、U-MAを留めるクリップになる。" (One red wire becomes the clip that holds U-MA together.)
-   15 s at 120 BPM. Starts and ends on the same red dot.
+   15 s at 120 BPM. Starts and ends on the same red dot; particles and line art carry WHAT WE DO.
    Pure function of time: UMA_REEL.draw(ctx, t, pixelWidth, pixelHeight). No timers, no state between frames.
    Design space is 1920x1080; it is fitted ("contain") into any canvas, with backgrounds bled to the edges. */
 (function (global) {
@@ -73,33 +74,10 @@
     for (var i = 0; i < n; i++) { ctx.globalAlpha = a / (i + 1); fn(t - (n - 1 - i) / (n - 1 || 1) * SHUTTER); }
     ctx.globalAlpha = a;
   }
-  // radius functions for shape morphing (unit size)
-  function rSquare(th) { return 1 / Math.max(Math.abs(Math.cos(th)), Math.abs(Math.sin(th))); }
-  function rTri(th) { var p = Math.PI / 2, b = Math.max(Math.cos(th - p), Math.cos(th - p - 2 * Math.PI / 3), Math.cos(th - p + 2 * Math.PI / 3)); return 1 / b; }
-  function poly(ctx, cx, cy, rf, rot, color) {
-    ctx.beginPath();
-    for (var i = 0; i <= 240; i++) { var th = i / 240 * Math.PI * 2, r = rf(th), x = cx + Math.cos(th + rot) * r, y = cy + Math.sin(th + rot) * r; if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y); }
-    ctx.closePath(); ctx.fillStyle = color; ctx.fill();
-  }
-  var VIEW = null, layers = {}, sprites = {}, spriteScale = 0;
-  // a bitmap drawn once (in design units) and reused every frame
-  function sprite(key, w, h, fn) {
-    if (spriteScale !== VIEW.s) { sprites = {}; spriteScale = VIEW.s; frozen = null; }
-    var sp = sprites[key];
-    if (!sp) {
-      var c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w * VIEW.s)); c.height = Math.max(1, Math.ceil(h * VIEW.s));
-      var x = c.getContext('2d'); x.scale(VIEW.s, VIEW.s); fn(x); sp = sprites[key] = { c: c, w: w, h: h };
-    }
-    return sp;
-  }
-  function blitC(ctx, canvas, dx) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(canvas, (dx || 0) * VIEW.s, 0); ctx.restore(); }
-  function layer(ctx, name) {
-    var c = layers[name];
-    if (!c || c.width !== ctx.canvas.width || c.height !== ctx.canvas.height) { c = document.createElement('canvas'); c.width = ctx.canvas.width; c.height = ctx.canvas.height; layers[name] = c; }
-    var l = c.getContext('2d'); l.setTransform(1, 0, 0, 1, 0, 0); l.clearRect(0, 0, c.width, c.height);
-    l.setTransform(VIEW.s, 0, 0, VIEW.s, VIEW.ox, VIEW.oy); return l;
-  }
-  function blit(ctx, l, dx) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(l.canvas, (dx || 0) * VIEW.s, 0); ctx.restore(); }
+
+  var VIEW = null, DPR = 1;
+  // a small caption never drops below 10 CSS px, whatever the screen
+  function tiny(fs) { return Math.max(fs, 10 * DPR / VIEW.s); }
 
   // ---------- the official U-MA logo (from u-ma_logo_simple.svg) ----------
   // Parts: U, M, A (the separated set, lifted onto the assembled set), the clip, and the complete logo.
@@ -176,81 +154,191 @@
     });
   }
 
-  // Bar 3 (4–6 s) SHAPE MORPH: STUDIO's O → disc → square → triangle → grows into white; a short red wire is left
-  function bar3(ctx, t) {
-    var fs = fitFs(ctx, 'STUDIO', 700, 1720, 760), x0 = CX - mw(ctx, 'STUDIO', 700) * fs / 2, base = CY + CAP * fs / 2;
-    var C4 = city();
-    if (t < 5.5 || seg(t, 5.5, 5.95) < 1) bg(ctx, BLACK);
-    if (t < 4.5) {
-      'STUDIO'.split('').forEach(function (c, i) {
-        if (i === 5) return;   // the O stays and becomes the shape; S T U D I fly off to the left
-        var xi = x0 + mw(ctx, 'STUDIO'.slice(0, i), 700) * fs;
-        trail(ctx, t, function (tt) { var d = -eIn(seg(tt, 4, 4.35 - (4 - i) * .02)) * 1900; text(ctx, c, xi + d, base, fs, 700, WHITE, 'left'); });
-      });
-      var wO = mw(ctx, 'O', 700) * fs, xo = x0 + mw(ctx, 'STUDI', 700) * fs + wO / 2, rO = CAP * fs / 2 * 1.03;
-      trail(ctx, t, function (tt) {
-        var p = eInOut(seg(tt, 4, 4.45)), R = lerp(rO, 260, p), sw = lerp(.165 * fs, 2 * R, eIn(p)), cx = lerp(xo, CX, p);
-        ctx.beginPath(); ctx.arc(cx, CY, R, 0, Math.PI * 2); if (R - sw > 0) ctx.arc(cx, CY, R - sw, 0, Math.PI * 2, true);
-        ctx.fillStyle = WHITE; ctx.fill('evenodd');
-      });
-      return;
-    }
-    if (t < 5) { var m = eInOut(seg(t, 4.5, 4.9)); poly(ctx, CX, CY, function (th) { return lerp(260, 230 * rSquare(th), m); }, lerp(0, Math.PI / 2, m), WHITE); return; }
-    var m2 = eInOut(seg(t, 5, 5.4)), k = lerp(1, 9, eIn(seg(t, 5.5, 5.95)));
-    poly(ctx, CX, CY, function (th) { return lerp(230 * rSquare(th), 202 * rTri(th), m2) * k; }, lerp(Math.PI / 2, 2 * Math.PI / 3, m2), WHITE);
-    var hs = spring(seg(t, 5.62, 6));
-    if (hs > 0) wire(ctx, CX, CY, 260 * hs, C4.th * hs, 0, RED);
-  }
 
-  // Bar 4 (6–8 s) 2D → 3D: U M A rise out of the red wire, extrude into buildings, the camera rises to a street grid
-  function city() { var L = logoL(CX, CY - 30, 1100); return { L: L, wy: L.bot + 46, th: L.wire }; }
-  function cityParams(t) {
-    var d = 80 * eOut(seg(t, 6.5, 6.9)), sy = 1, sk = 0, ang = -50, push = 1;
-    if (t >= 7) { var m = eInOut(seg(t, 7, 7.45)); sy = lerp(1, .42, m); sk = lerp(0, -.35, m); ang = lerp(-50, -90, m); d = lerp(80, 220, m); push = lerp(1, 1.12, m); }
-    if (t >= 7.5) { var n = eInOut(seg(t, 7.5, 7.9)); sy = lerp(.42, 1, n); sk = lerp(-.35, 0, n); d = lerp(220, 0, n); push = lerp(1.12, 1, n); }
-    return { d: d, sy: sy, sk: sk, ang: ang * Math.PI / 180, push: push };
+  // Bars 3–4 (4–8 s) WHAT WE DO: STUDIO breaks into particles; the cloud flows into one line drawing per beat —
+  // WEB, GRAPHIC, MUSIC, MOVIE, SNS, AI, VIBE CODING, APP — then lies down as the street grid of bar 5.
+  // Each formation is a set of 3D polylines: the particles sit on them, the same lines are drawn as thin line art,
+  // and copies of them ripple outward until they cover the screen.
+  var WHAT = ['WEB', 'GRAPHIC', 'MUSIC', 'MOVIE', 'SNS', 'AI', 'VIBE CODING', 'APP'];
+  var PCX = CX + 250, PCY = CY - 40, FOCAL = 1600;
+  function ring(cx, cy, r, n) { var a = []; for (var i = 0; i <= n; i++) { var th = i / n * Math.PI * 2; a.push([cx + Math.cos(th) * r, cy + Math.sin(th) * r, 0]); } return a; }
+  function rect3(x, y, w, h) { return [[x, y, 0], [x + w, y, 0], [x + w, y + h, 0], [x, y + h, 0], [x, y, 0]]; }
+  function rrect3(x, y, w, h, r) {
+    var a = [];
+    [[x + w - r, y + r, -Math.PI / 2], [x + w - r, y + h - r, 0], [x + r, y + h - r, Math.PI / 2], [x + r, y + r, Math.PI]].forEach(function (c) {
+      for (var i = 0; i <= 6; i++) { var th = c[2] + i / 6 * Math.PI / 2; a.push([c[0] + Math.cos(th) * r, c[1] + Math.sin(th) * r, 0]); }
+    });
+    a.push(a[0]); return a;
   }
-  function grid(ctx, t) {
-    ctx.fillStyle = BLACK;
-    for (var i = 0; i <= 20; i++) { var e = eOut(seg(t, 7.55 + i * .004, 7.95)), l = H * e; ctx.fillRect(i * 96 - 1, CY - l / 2, 2, l); }
-    for (var j = 0; j <= 11; j++) { var f = eOut(seg(t, 7.55 + j * .006, 7.95)), w = W * f; ctx.fillRect(CX - w / 2, j * 96 + 12 - 1, w, 2); }
+  function seg3(x0, y0, x1, y1) { return [[x0, y0, 0], [x1, y1, 0]]; }
+  // great circles and parallels of a sphere / the rings of a torus, as 3D polylines
+  function meridian(R, a) { var p = []; for (var i = 0; i <= 48; i++) { var th = i / 48 * Math.PI * 2; p.push([Math.cos(a) * Math.sin(th) * R, Math.cos(th) * R, Math.sin(a) * Math.sin(th) * R]); } return p; }
+  function parallel(R, y) { var r = Math.sqrt(Math.max(0, R * R - y * y)), p = []; for (var i = 0; i <= 48; i++) { var th = i / 48 * Math.PI * 2; p.push([Math.cos(th) * r, y, Math.sin(th) * r]); } return p; }
+  function heart() { var p = []; for (var i = 0; i <= 80; i++) { var a = i / 80 * Math.PI * 2, s = Math.sin(a); p.push([16 * s * s * s * 21, -(13 * Math.cos(a) - 5 * Math.cos(2 * a) - 2 * Math.cos(3 * a) - Math.cos(4 * a)) * 21 - 40, 0]); } return p; }
+  function shapes() {
+    var web = [rect3(-450, -300, 900, 600), seg3(-450, -232, 450, -232), ring(-410, -266, 9, 12), ring(-378, -266, 9, 12), ring(-346, -266, 9, 12),
+      rect3(-390, -180, 360, 210), seg3(10, -168, 390, -168), seg3(10, -120, 390, -120), seg3(10, -72, 300, -72), rect3(-390, 80, 240, 160), rect3(-120, 80, 240, 160), rect3(150, 80, 240, 160)];
+    var graphic = [ring(-140, 30, 255, 64), rect3(-30, -250, 450, 450), [[-360, 300, 0], [-90, -200, 0], [180, 300, 0], [-360, 300, 0]], seg3(-560, 330, 560, -330)];
+    var music = [];
+    for (var l = 0; l < 5; l++) music.push([[-950, -180 + l * 80, 0], [950, -180 + l * 80, 0]]);
+    var note = []; for (var i = 0; i <= 32; i++) { var a = i / 32 * Math.PI * 2; note.push([250 + Math.cos(a) * 66 * Math.cos(-.4) - Math.sin(a) * 44 * Math.sin(-.4), 140 + Math.cos(a) * 66 * Math.sin(-.4) + Math.sin(a) * 44 * Math.cos(-.4), 0]); }
+    music.push(note, seg3(312, 120, 312, -300), [[312, -300, 0], [380, -230, 0], [420, -150, 0]]);
+    var movie = [ring(0, 0, 250, 72), ring(0, 0, 390, 72), [[-90, -140, 0], [150, 0, 0], [-90, 140, 0], [-90, -140, 0]]];
+    for (var h = 0; h < 8; h++) movie.push(ring(Math.cos(h * Math.PI / 4) * 320, Math.sin(h * Math.PI / 4) * 320, 34, 16));
+    var sns = [heart()]; for (var r = 0; r < 8; r++) { var ra = r * Math.PI / 4 - Math.PI / 2; sns.push(seg3(Math.cos(ra) * 430, Math.sin(ra) * 430 - 30, Math.cos(ra) * 520, Math.sin(ra) * 520 - 30)); }
+    var ai = []; for (var m = 0; m < 6; m++) ai.push(meridian(360, m * Math.PI / 6)); [-270, -140, 0, 140, 270].forEach(function (y) { ai.push(parallel(360, y)); });
+    ai.push([[430, -440, 0], [452, -392, 0], [500, -370, 0], [452, -348, 0], [430, -300, 0], [408, -348, 0], [360, -370, 0], [408, -392, 0], [430, -440, 0]]);
+    var code = [[[-250, -280, 0], [-540, 0, 0], [-250, 280, 0]], seg3(130, -340, -130, 340), [[250, -280, 0], [540, 0, 0], [250, 280, 0]]];
+    var app = [rrect3(-200, -380, 400, 760, 64), seg3(-56, 336, 56, 336), seg3(-40, -350, 40, -350)];
+    for (var q = 0; q < 12; q++) app.push(rrect3(-150 + (q % 3) * 108, -290 + Math.floor(q / 3) * 108, 84, 84, 20));
+    // the street grid of bar 5, in screen coordinates (relative to the formation center)
+    var gridL = [];
+    for (var gi = 0; gi <= 20; gi++) gridL.push(seg3(gi * 96 - PCX, -PCY, gi * 96 - PCX, H - PCY));
+    for (var gj = 0; gj <= 11; gj++) gridL.push(seg3(-PCX, gj * 96 + 12 - PCY, W - PCX, gj * 96 + 12 - PCY));
+    return [web, graphic, music, movie, sns, ai, code, app, gridL];
+  }
+  // particles spread along the polylines by length (with a little scatter, so the lines look drawn with grain)
+  function sampleLines(lines, n, seed) {
+    var segs = [], tot = 0;
+    lines.forEach(function (pl) { for (var i = 1; i < pl.length; i++) { var a = pl[i - 1], b = pl[i], l = Math.hypot(b[0] - a[0], b[1] - a[1], b[2] - a[2]); if (l > 0) { segs.push([a, b, tot, l]); tot += l; } } });
+    var out = new Float32Array(n * 3), j = 0;
+    for (var i = 0; i < n; i++) {
+      var s = (i + hash(i + seed) * .9) / n * tot;
+      while (j < segs.length - 1 && segs[j][2] + segs[j][3] < s) j++;
+      var g = segs[j], f = clamp((s - g[2]) / g[3], 0, 1), sc = 7 * (hash(i * 3 + seed) - .5);
+      out[i * 3] = lerp(g[0][0], g[1][0], f) + sc; out[i * 3 + 1] = lerp(g[0][1], g[1][1], f) + sc * .7; out[i * 3 + 2] = lerp(g[0][2], g[1][2], f);
+    }
+    // the particle order is shuffled per formation, so every change of shape is a real flow, not a slide
+    var idx = []; for (var k = 0; k < n; k++) idx.push(k); idx.sort(function (a, b) { return hash(a * 7.3 + seed) - hash(b * 7.3 + seed); });
+    var mix = new Float32Array(n * 3); idx.forEach(function (from, to) { mix[to * 3] = out[from * 3]; mix[to * 3 + 1] = out[from * 3 + 1]; mix[to * 3 + 2] = out[from * 3 + 2]; });
+    return mix;
+  }
+  // the first formation: STUDIO itself, read from its own pixels
+  function studioPoints(ctx, n) {
+    var fs = fitFs(ctx, 'STUDIO', 700, 1720, 760), k = .25;
+    var c = document.createElement('canvas'); c.width = Math.ceil(W * k); c.height = Math.ceil(H * k);
+    var x = c.getContext('2d'); x.scale(k, k); text(x, 'STUDIO', CX, CY + CAP * fs / 2, fs, 700, '#000', 'center', 0);
+    var d = x.getImageData(0, 0, c.width, c.height).data, px = [];
+    for (var y = 0; y < c.height; y++) for (var xx = 0; xx < c.width; xx++) if (d[(y * c.width + xx) * 4 + 3] > 128) px.push([xx / k - PCX, y / k - PCY]);
+    var out = new Float32Array(n * 3);
+    for (var i = 0; i < n; i++) { var p = px[Math.floor(hash(i + 911) * px.length)] || [0, 0]; out[i * 3] = p[0] + hash(i + 3) * 4; out[i * 3 + 1] = p[1] + hash(i + 5) * 4; out[i * 3 + 2] = 0; }
+    return out;
+  }
+  var FORMS = null;
+  function forms(ctx, n) {
+    if (FORMS && FORMS.n === n) return FORMS;
+    var sh = shapes();
+    FORMS = { n: n, lines: sh, pts: sh.map(function (l, i) { return sampleLines(l, n, 17 + i * 31); }), start: studioPoints(ctx, n) };
+    return FORMS;
+  }
+  // how each formation turns in space (flat drawings sway, the sphere and the reel spin)
+  function rotOf(k, t) {
+    if (k === 8 || k < 0) return [0, 0];
+    if (k === 5) return [t * 1.3, .38];
+    if (k === 3) return [.5 * Math.sin(t * 2.2), .25 * Math.sin(t * 1.4)];
+    return [.42 * Math.sin(t * 1.7 + k), .16 * Math.sin(t * 1.2 + k * 2)];
+  }
+  function project(x, y, z, r, out) {
+    var cy = Math.cos(r[0]), sy = Math.sin(r[0]), cx = Math.cos(r[1]), sx = Math.sin(r[1]);
+    var x1 = x * cy + z * sy, z1 = -x * sy + z * cy, y1 = y * cx - z1 * sx, z2 = y * sx + z1 * cx, s = FOCAL / (FOCAL + z2);
+    out[0] = PCX + x1 * s; out[1] = PCY + y1 * s; out[2] = s;
+  }
+  function music(k, x, y, t) { return k === 2 ? y + 46 * Math.sin(x / 170 + t * 7) : y; }   // the staff lines wave
+  var NPART = 1400;
+  function partCount() { return VIEW.s * VIEW.s * W * H > 1.3e6 ? 1400 : 700; }   // fewer on small screens
+  function beatK(t) { return t < 7.75 ? Math.min(7, Math.floor((t - 4) / .5)) : 8; }
+  function beatT(k) { return k === 8 ? 7.75 : 4 + k * .5; }
+  // the particle cloud at time t (positions are a pure function of time)
+  function particles(ctx, t, alpha, invert) {
+    var n = partCount(), F = forms(ctx, n), k = beatK(t), T = beatT(k);
+    var A = k === 0 ? F.start : F.pts[k - 1], B = F.pts[k], rA = rotOf(k - 1, t), rB = rotOf(k, t);
+    var pa = [0, 0, 0], pb = [0, 0, 0], blk = new Path2D(), red = new Path2D();
+    for (var i = 0; i < n; i++) {
+      var h1 = hash(i + .5), h2 = hash(i + 101), d = h1 * .1;
+      var p = eInOut(seg(t, T + d, T + d + (k === 0 ? .42 : .3))), fl = Math.sin(Math.PI * p);
+      var ax = A[i * 3], ay = A[i * 3 + 1], bx = B[i * 3], by = B[i * 3 + 1];
+      if (k === 0) { pa[0] = PCX + ax; pa[1] = PCY + ay; pa[2] = 1; } else project(ax, music(k - 1, ax, ay, t), A[i * 3 + 2], rA, pa);
+      project(bx, music(k, bx, by, t), B[i * 3 + 2], rB, pb);
+      var ang = h2 * 6.283 + t * 2.4, amp = fl * (120 + 260 * h1);   // the flow: each particle swirls off its path and back
+      var x = lerp(pa[0], pb[0], p) + Math.cos(ang) * amp + 2.5 * Math.sin(t * 3 + i), y = lerp(pa[1], pb[1], p) + Math.sin(ang) * amp + 2.5 * Math.cos(t * 2.6 + i);
+      var s = lerp(pa[2], pb[2], p), r = i % 9 === 0, sz = (r ? 4.6 : 3.4) * s * (1 + fl * .8);
+      (r ? red : blk).rect(x - sz / 2, y - sz / 2, sz, sz);
+    }
+    ctx.globalAlpha = alpha;
+    if (invert) { ctx.globalCompositeOperation = 'difference'; ctx.fillStyle = '#ffffff'; ctx.fill(blk); ctx.globalCompositeOperation = 'source-over'; }
+    else { ctx.fillStyle = BLACK; ctx.fill(blk); }
+    ctx.fillStyle = RED; ctx.fill(red); ctx.globalAlpha = 1;
+  }
+  // the formation's own lines: drawn on along their length, plus three copies rippling out across the whole screen
+  function lineArt(ctx, t) {
+    var k = beatK(t); if (k > 7) return;
+    var T = beatT(k), u = (t - T) / .5, F = forms(ctx, partCount()), r = rotOf(k, t), q = [0, 0, 0];
+    var draw = eOut(seg(t, T + .08, T + .4));
+    function path(sc, part) {
+      ctx.beginPath();
+      F.lines[k].forEach(function (pl) {
+        var lim = Math.max(1, Math.floor((pl.length - 1) * part)), fr = (pl.length - 1) * part - lim + 1;
+        for (var i = 0; i <= lim && i < pl.length; i++) {
+          var a = pl[i], x = a[0], y = music(k, a[0], a[1], t), z = a[2];
+          if (i === lim && fr < 1 && i > 0) { var b = pl[i - 1]; x = lerp(b[0], a[0], fr); y = lerp(music(k, b[0], b[1], t), y, fr); z = lerp(b[2], a[2], fr); }
+          project(x * sc, y * sc, z * sc, r, q);
+          if (i) ctx.lineTo(q[0], q[1]); else ctx.moveTo(q[0], q[1]);
+        }
+      });
+      ctx.stroke();
+    }
+    ctx.strokeStyle = BLACK; ctx.lineJoin = 'round'; ctx.lineCap = 'round';
+    for (var j = 0; j < 3; j++) {
+      var f = (u * .9 + j / 3) % 1, sc = 1.15 + f * 2.6;
+      ctx.globalAlpha = .28 * (1 - f) * draw; ctx.lineWidth = 1.4; path(sc, 1);
+    }
+    ctx.globalAlpha = 1; ctx.lineWidth = 2; if (draw > 0) path(1, draw);
+  }
+  // halftone: a grid of square dots over the visible screen; size(x, y) in design px
+  function halftone(ctx, sp, size, color, only) {
+    var x0 = -VIEW.ox / VIEW.s - sp, x1 = (VIEW.pw - VIEW.ox) / VIEW.s + sp, y0 = -VIEW.oy / VIEW.s - sp, y1 = (VIEW.ph - VIEW.oy) / VIEW.s + sp;
+    var p = new Path2D(), any = false;
+    for (var y = Math.floor(y0 / sp) * sp + sp / 2; y < y1; y += sp) for (var x = Math.floor(x0 / sp) * sp + sp / 2; x < x1; x += sp) {
+      if (only && !only(x, y)) continue;
+      var s = size(x, y); if (s > .5) { p.rect(x - s / 2, y - s / 2, s, s); any = true; }
+    }
+    if (any) { ctx.fillStyle = color; ctx.fill(p); }
+  }
+  function bar3(ctx, t) {
+    bg(ctx, WHITE);
+    var k = beatK(t), T = beatT(k);
+    // GRAPHIC: a halftone wave rolls out from the drawing (red at its heart)
+    var env = Math.sin(Math.PI * seg(t, 4.45, 5.1));
+    if (env > 0) {
+      var sz = function (x, y) { var d = Math.hypot(x - PCX, y - PCY); return 30 * .7 * env * clamp(1.15 - d / 1250, 0, 1) * (.5 + .5 * Math.sin(d / 85 - t * 11)); };
+      halftone(ctx, 30, sz, '#d9d9d9', function (x, y) { return Math.hypot(x - PCX, y - PCY) >= 200; });
+      halftone(ctx, 30, sz, RED, function (x, y) { return Math.hypot(x - PCX, y - PCY) < 200; });
+    }
+    lineArt(ctx, t);
+    var dis = t < 4.6;   // the black of STUDIO dissolves into halftone, from the middle out
+    if (dis) halftone(ctx, 36, function (x, y) { var d = Math.hypot(x - CX, y - CY) / 1100; return 36 * 1.5 * (1 - eInOut(seg(t, 4 + d * .25, 4.22 + d * .25))); }, BLACK);
+    particles(ctx, t, 1, dis);
+    k = Math.min(7, Math.floor((t - 4) / .5)); T = 4 + k * .5;
+    // the word, rising into place on its beat; the scene label and counter
+    var wd = WHAT[k], fs = Math.min(250, fitFs(ctx, wd, 700, 1300)), base = 940, top = base - CAP * fs;
+    ctx.save(); ctx.beginPath(); ctx.rect(-W, top - 14, W * 3, CAP * fs + 40); ctx.clip();
+    if (dis) ctx.globalCompositeOperation = 'difference';   // still on the black: the word shows white
+    trail(ctx, t, function (tt) { var e = eOut(seg(tt, T, T + .2)), o = eIn(seg(tt, T + .44, T + .5)); text(ctx, wd, 110, base + (1 - e) * CAP * fs * 1.15 - o * CAP * fs * 1.15, fs, 700, dis ? WHITE : BLACK, 'left', 0); });
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.restore();
+    var le = eOut(seg(t, 4.05, 4.4)) * (1 - eIn(seg(t, 7.6, 7.75)));
+    if (le > 0) {
+      ctx.globalAlpha = le;
+      if (dis) ctx.globalCompositeOperation = 'difference';
+      label(ctx, 'WHAT WE DO', 120, 150, 'left', dis ? WHITE : BLACK);
+      ctx.globalCompositeOperation = 'source-over';
+      label(ctx, '0' + (k + 1) + ' / 08', 1800, 150, 'right', RED);
+      ctx.globalAlpha = 1;
+    }
   }
   function label(ctx, str, x, y, align, color) { text(ctx, str, x, y, 24, 500, color || BLACK, align, 7.5); }
-  function bar4(ctx, t) {
-    bg(ctx, WHITE);
-    var C = city(), L = C.L, P = cityParams(t);
-    if (t >= 7.5) grid(ctx, t);
-    var mv = eInOut(seg(t, 6, 6.35)), wy = lerp(CY, C.wy, mv), wl = lerp(260, L.w, mv), rv = eOut(seg(t, 6.12, 6.5));
-    function ground(fn) { ctx.save(); ctx.translate(CX, CY); ctx.scale(P.push, P.push); ctx.transform(1, 0, P.sk, P.sy, 0, 0); ctx.translate(-CX, -CY); fn(); ctx.restore(); }
-    // extrusion: layers stacked along the camera's "up", far ones lighter (each layer is one drawImage of a cached bitmap)
-    var step = Math.max(4, P.d / 12), n = Math.floor(P.d / step);   // at most 12 layers
-    if (n > 0) {
-      // the grey sides are drawn into a half-resolution buffer (a quarter of the pixels), the black faces stay sharp
-      var pad = 20, bw = L.w + pad * 2, bh = L.h + pad * 2, bx = L.cx - bw / 2, by = L.cy - bh / 2;
-      var main = ctx, hb = layers.half;
-      if (!hb || hb.width !== Math.ceil(main.canvas.width / 2) || hb.height !== Math.ceil(main.canvas.height / 2)) { hb = layers.half = document.createElement('canvas'); hb.width = Math.ceil(main.canvas.width / 2); hb.height = Math.ceil(main.canvas.height / 2); }
-      ctx = hb.getContext('2d'); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, hb.width, hb.height); ctx.setTransform(VIEW.s / 2, 0, 0, VIEW.s / 2, VIEW.ox / 2, VIEW.oy / 2);
-      for (var k = n; k >= 1; k--) {
-        var dx = Math.cos(P.ang) * k * step, dy = Math.sin(P.ang) * k * step, lv = Math.round(5 * (1 - k / n));
-        var shade = Math.round(lerp(232, 150, lv / 5)), col = 'rgb(' + shade + ',' + shade + ',' + shade + ')';
-        var sp = sprite('city' + lv, bw, bh, function (x) { letters(x, logoL(bw / 2, bh / 2, L.w), col); });
-        ctx.save(); ctx.translate(dx, dy);
-        ground(function () { ctx.drawImage(sp.c, bx, by, bw, bh); wire(ctx, CX, wy, wl, C.th, 0, '#a5000d'); });
-        ctx.restore();
-      }
-      ctx = main; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(hb, 0, 0, main.canvas.width, main.canvas.height); ctx.restore();
-    }
-    ground(function () {
-      if (rv > 0) {   // the letters rise out of the wire
-        ctx.save(); ctx.beginPath(); ctx.rect(-W * 4, -H * 8, W * 9, wy - C.th / 2 + H * 8); ctx.clip();
-        var up = (1 - rv) * (L.h + 90); letters(ctx, L, BLACK, { U: [0, up], M: [0, up * 1.1], A: [0, up * 1.2] }); ctx.restore();
-      }
-      wire(ctx, CX, wy, wl, C.th, 0, RED);
-    });
-    if (t >= 7.5) { var e = eOut(seg(t, 7.5, 7.85)); label(ctx, 'IN TOKYO, SHIBUYA', 120 - (1 - e) * 80, 960, 'left'); }
-  }
 
-  // Bar 5 (8–10 s) DATA / UI: the street grid falls flat into a timeline; 2000 → 2027 rolls; bars rise
+  // Bar 5 (8–9.5 s, written on an 8–10 s clock) DATA / UI: the particles' street grid falls flat into a timeline; 2000 → 2027 rolls
   var NT = 27, BASE = 790, X0 = 200, STEP = 1520 / NT;   // ticks 0..27 = 2000..2027
   function tickX(i) { return X0 + i * STEP; }
   function barH(i) { return 60 + 300 * hash(i) * (.55 + .45 * i / NT); }
@@ -268,7 +356,7 @@
   }
   function bar5(ctx, t) {
     bg(ctx, WHITE);
-    var m = eInOut(seg(t, 8, 8.4)), C = city(), L = C.L;
+    var m = eInOut(seg(t, 8, 8.4));
     ctx.fillStyle = BLACK;
     for (var i = 0; i <= NT; i++) {           // grid lines fold into ticks
       var fx = i <= 20 ? i * 96 : W + (i - 20) * 96, tx = tickX(i), tall = i % 10 === 0 || i === NT ? 44 : 22;
@@ -277,14 +365,10 @@
     }
     var hl = lerp(W, tickX(NT) - tickX(0) + 2, m);
     for (var j = 0; j <= 11; j++) ctx.fillRect(lerp(CX - W / 2, X0 - 1, m), lerp(j * 96 + 12, BASE, m) - 1, hl, 2);
-    if (m < 1) {                              // the letters fold down into the baseline
-      ctx.save(); ctx.translate(0, BASE); ctx.scale(1, 1 - m); ctx.translate(0, -BASE); ctx.translate(0, (BASE - CY) * m);
-      letters(ctx, L, BLACK); ctx.restore();
-      var lo = eIn(seg(t, 8, 8.3)); label(ctx, 'IN TOKYO, SHIBUYA', 120, 960 + lo * 200, 'left');
-    }
-    // the red wire turns into the red marker at 2000
-    var hm = eInOut(seg(t, 8, 8.4)), mh = lerp(C.th, 120, hm) + 140 * eOut(seg(t, 9.5, 9.85)), mw_ = lerp(L.w, 8, hm);
-    var mx = lerp(CX, tickX(0), hm), my = lerp(C.wy, BASE - mh / 2, hm);
+    var it = eOut(seg(t, 8.15, 8.5));
+    if (it > 0) { ctx.save(); ctx.beginPath(); ctx.rect(0, 100, W, 110); ctx.clip(); text(ctx, 'IN TOKYO, SHIBUYA', X0, 190 + (1 - it) * 100, 76, 700, BLACK, 'left', 6); ctx.restore(); }
+    // the red marker at 2000 grows out of the baseline
+    var hm = eOut(seg(t, 8.2, 8.5)), mh = 120 * hm + 140 * eOut(seg(t, 9.5, 9.85)), mw_ = 8, mx = tickX(0), my = BASE - mh / 2;
     // bars
     for (var b = 0; b <= NT; b++) { var e = eOut(seg(t, 9 + b * .012, 9.35 + b * .012)), h = barH(b) * e; if (h > 0) ctx.fillRect(tickX(b) - 11, BASE - h, 22, h); }
     ctx.fillStyle = RED; ctx.fillRect(mx - mw_ / 2, my - mh / 2, mw_, mh);
@@ -298,59 +382,21 @@
     if (t >= 9.5) { var se = eOut(seg(t, 9.5, 9.8)); label(ctx, 'SINCE 2000', tickX(0) + 20 + (1 - se) * 60, BASE - 230, 'left', RED); }
   }
 
-  // Bar 6 (10–12 s) MASK: the bars stand up into a black wall; U M A open as a window onto running type
-  var LINE = 'A VERY CREATIVE DESIGN STUDIO — IN TOKYO, SHIBUYA — SINCE 2000 — ';
-  function marquee(ctx, t) {
-    bg(ctx, WHITE);
-    var steps = 0; for (var b = 10.5; b < 12; b += .5) steps += eOut(seg(t, b, b + .3));
-    var fs = 44, lw = mw(ctx, LINE, 700) * fs, rh = fs * 1.3;
-    var row = sprite('marquee', lw, rh, function (x) { text(x, LINE, 0, fs, fs, 700, BLACK, 'left'); });
-    for (var r = 0; r < 18; r++) {
-      var dir = r % 2 ? 1 : -1, off = ((dir * steps * 380 + r * 233) % lw + lw) % lw;
-      for (var x = -off - lw; x < W + lw; x += lw) ctx.drawImage(row.c, x, 70 + r * 62 - fs, lw, rh);
-    }
-  }
-  function windowLayer(ctx, t) {
-    var l = layer(ctx, 'wall');
-    l.fillStyle = BLACK; l.fillRect(-W, -H, W * 3, H * 3);
-    var sc = eOut(seg(t, 10.5, 10.95)) * lerp(1, 1.06, seg(t, 11, 12));
-    var L = logoL(CX, CY, 1500);
-    l.save(); l.translate(CX, CY); l.scale(sc, sc); l.translate(-CX, -CY);
-    l.globalCompositeOperation = 'destination-out'; letters(l, L, '#000'); l.globalCompositeOperation = 'source-over'; l.restore();
-    return l;
-  }
-  function bar6(ctx, t) {
-    if (t < 10.5) {
-      bar5(ctx, 9.999); ctx.fillStyle = BLACK;
-      for (var i = 0; i <= NT; i++) {
-        var m = eInOut(seg(t, 10 + i * .006, 10.38 + i * .006)), x = tickX(i), h = barH(i);
-        var left = lerp(x - 11, i === 0 ? -40 : x - STEP / 2 - 1, m), right = lerp(x + 11, i === NT ? W + 40 : x + STEP / 2 + 1, m);
-        var top = lerp(BASE - h, -40, m), bot = lerp(BASE, H + 40, m);
-        ctx.fillRect(left, top, right - left, bot - top);
-      }
-      return;
-    }
-    marquee(ctx, t); blit(ctx, windowLayer(ctx, t));
-  }
 
-  // Bar 7 (12–14 s) STRONGEST: "SPEED, QUALITY and SURPRISE !" — each word moves the way it means.
-  // The wall leaves in fast slices (SPEED), letters land on guides (QUALITY), the screen flips (SURPRISE),
+  // Bar 7 (9.5–12 s, written on a 12–14 s clock) STRONGEST: "SPEED, QUALITY and SURPRISE !" — each word moves the way it means.
+  // The timeline is pushed out with speed lines (SPEED), letters land on guides (QUALITY), the screen flips (SURPRISE),
   // and the red hyphen stands up to become "!" — then lies back down as U-MA's hyphen.
-  var frozen = null;
-  function frozenWall(ctx) {   // the end of bar 6, drawn once and reused
-    var c = ctx.canvas;
-    if (!frozen || frozen.width !== c.width || frozen.height !== c.height || frozen._s !== VIEW.s) {
-      var mq = layer(ctx, 'mq'); marquee(mq, 11.999);
-      var wall = windowLayer(ctx, 11.999);
-      mq.save(); mq.setTransform(1, 0, 0, 1, 0, 0); mq.drawImage(wall.canvas, 0, 0); mq.restore();
-      frozen = document.createElement('canvas'); frozen.width = c.width; frozen.height = c.height; frozen._s = VIEW.s;
-      frozen.getContext('2d').drawImage(mq.canvas, 0, 0);
-    }
-    return frozen;
-  }
   function bar7(ctx, t) {
     var sh = H / 8, LF = logoL(CX, CY, 1000);
     bg(ctx, WHITE);
+    if (t < 12.25) trail(ctx, t, function (tt) { ctx.save(); ctx.translate(-eIn(seg(tt, 12, 12.22)) * (W + 400), 0); bar5(ctx, 9.999); ctx.restore(); });
+    if (t < 12.75) {                          // speed lines tear across the screen
+      for (var sl = 0; sl < 70; sl++) {
+        var sx = W + 300 - ((t - 12) * 7000 + hash(sl + 40) * 4200), slen = 200 + 700 * hash(sl + 41), sy = -60 + hash(sl + 42) * (H + 120);
+        if (sx < -slen || sx > W + 300) continue;
+        ctx.fillStyle = sl % 7 ? BLACK : RED; ctx.fillRect(sx, sy, slen, sl % 7 ? 2 : 4);
+      }
+    }
     // SPEED, — whips in from the right as the wall leaves, and out to the left
     if (t < 12.75) {
       var fsS = fitFs(ctx, 'SPEED,', 700, 1600, 640);
@@ -375,6 +421,9 @@
       var e1 = eInOut(seg(t, 13, 13.18)), e2 = eInOut(seg(t, 13.5, 13.66)), ph = H * (t < 13.5 ? e1 : 1 - e2);
       ctx.save(); ctx.beginPath(); ctx.rect(-W * 4, CY - (ph >= H ? H * 8 : ph / 2), W * 9, ph >= H ? H * 17 : ph); ctx.clip();
       bg(ctx, BLACK);
+      var be = eOut(seg(t, 13.02, 13.5)), bp = new Path2D();   // a burst of white particles behind the letters
+      for (var bi = 0; bi < 260; bi++) { var ba = hash(bi + 300) * 6.283, br = be * (220 + 980 * hash(bi + 301)), bs = 4 * (1 - .6 * be); bp.rect(CX + Math.cos(ba) * br - bs / 2, CY + Math.sin(ba) * br * .7 - bs / 2, bs, bs); }
+      ctx.globalAlpha = 1 - eIn(seg(t, 13.2, 13.5)); ctx.fillStyle = WHITE; ctx.fill(bp); ctx.globalAlpha = 1;
       var fsP = fitFs(ctx, 'SURPRISE', 700, 1500, 560), wP = mw(ctx, 'SURPRISE', 700) * fsP, xp = CX - wP / 2, baseP = CY + CAP * fsP / 2 + 40;
       var an = eOut(seg(t, 13.02, 13.2)); text(ctx, 'and', CX, baseP - CAP * fsP - 50 + (1 - an) * 30, 64, 500, WHITE, 'center', 12);
       'SURPRISE'.split('').forEach(function (c, i) {
@@ -399,40 +448,47 @@
       });
       wire(ctx, x, y, len * sc, th * sc, rot, RED);
     }
-    // the wall leaves in eight fast slices
-    if (t < 12.5) {
-      var fw = frozenWall(ctx);
-      for (var j = 0; j < 8; j++) {
-        var hj = 12 + j * .015; if (t >= hj + .14) continue;
-        ctx.save(); ctx.beginPath(); ctx.rect(-W * 4, j === 0 ? -H * 8 : j * sh, W * 9, j === 0 || j === 7 ? sh + H * 8 : sh); ctx.clip();
-        (function (j, hj) { trail(ctx, t, function (tt) { blitC(ctx, fw, (j % 2 ? -1 : 1) * (W + 300) * eIn(seg(tt, hj, hj + .14))); }); })(j, hj);
-        ctx.restore();
-      }
-    }
   }
 
-  // Bar 8, first half (14–15 s) the wire draws the clip around U M A → the official logo → back to the red dot
+
+  // Bar 8 (12–15 s) the wire draws the clip around U M A → the official logo holds, with a burst → back to the red dot
+  var T_LOGO = 12.5;
   function bar8(ctx, t) {
     bg(ctx, WHITE);
-    var LF = logoL(CX, CY, 1000), out = eIn(seg(t, 14.75, 15)), inn = eOut(seg(t, 14.3, 14.5)), slide = (1 - inn) * 900 + out * 1500;
-    if (t >= 14.3) {
+    var LF = logoL(CX, CY, 1000), out = eIn(seg(t, 14.35, 14.6)), inn = eOut(seg(t, T_LOGO, T_LOGO + .25)), slide = (1 - inn) * 900 + out * 1500;
+    if (t >= T_LOGO) {
       label(ctx, 'A VERY CREATIVE DESIGN STUDIO', 120 - slide, 150, 'left');
       label(ctx, 'IN TOKYO, SHIBUYA', 120 - slide, 960, 'left');
       label(ctx, 'SINCE 2000', 1800 + slide, 960, 'right');
+      var be = eOut(seg(t, T_LOGO, T_LOGO + 1.1)), bk = new Path2D(), rd = new Path2D();   // the logo lands: particles burst out and settle
+      if (be < 1) {
+        for (var i = 0; i < 220; i++) {
+          var x0 = CX + (hash(i + 500) - .5) * LF.w, y0 = CY + (hash(i + 501) - .5) * LF.h, a = Math.atan2(y0 - CY, (x0 - CX) * .4), r = be * (160 + 520 * hash(i + 502)), s = 4 * (1 - be);
+          (i % 6 ? bk : rd).rect(x0 + Math.cos(a) * r - s / 2, y0 + Math.sin(a) * r - s / 2, s, s);
+        }
+        ctx.fillStyle = BLACK; ctx.fill(bk); ctx.fillStyle = RED; ctx.fill(rd);
+      }
     }
-    var push = lerp(1, 1.03, seg(t, 14.3, 14.75)), shrink = 1 - eIn(seg(t, 14.75, 14.97)), s = push * shrink;
+    var push = lerp(1, 1.05, seg(t, T_LOGO, 14.35)), shrink = 1 - eIn(seg(t, 14.35, 14.6)), s = push * shrink;
     if (s > 0) {
       ctx.save(); ctx.translate(CX, CY); ctx.scale(s, s); ctx.translate(-CX, -CY);
-      if (t < 14.3) { letters(ctx, LF, BLACK); clipDraw(ctx, LF, RED, lerp(.012, 1, eInOut(seg(t, 14, 14.3)))); }
+      if (t < T_LOGO) { letters(ctx, LF, BLACK); clipDraw(ctx, LF, RED, lerp(.012, 1, eInOut(seg(t, 12, T_LOGO)))); }
       else fullLogo(ctx, LF, INK);                       // the official logo, in its own color
       ctx.restore();
     }
-    var d = 32 * eOut(seg(t, 14.8, 15));
+    var d = 32 * eOut(seg(t, 14.45, 14.8));
     if (d > .5) rrect(ctx, CX - d / 2, CY - d / 2, d, d, d / 2, RED);
+    scrollDown(ctx, eOut(seg(t, 14.6, 14.95)));
   }
 
-  // Waiting screen: the red dot appears, "Click me !" slides in, the dot beats at 120 BPM.
+  // Waiting screen: the red dot, "Click me !" beside it and SCROLL DOWN under it; the dot beats at 120 BPM.
   // ti = seconds since the waiting screen started; still = no motion (prefers-reduced-motion)
+  function scrollDown(ctx, e) {
+    if (e <= 0) return;
+    var fs = tiny(11); ctx.globalAlpha = e;
+    text(ctx, 'SCROLL DOWN', CX, CY + 30 + CAP * fs + (1 - e) * 8, fs, 500, BLACK, 'center', fs * .3);
+    ctx.globalAlpha = 1;
+  }
   function idle(ctx, ti, pw, ph, still) {
     setView(ctx, pw, ph); bg(ctx, WHITE);
     var a = still ? 1 : spring(seg(ti, 0, .5)), phase = (((ti - .5) % .5) + .5) % .5 / .5;
@@ -440,29 +496,32 @@
     if (r > .5) rrect(ctx, CX - r / 2, CY - r / 2, r, r, r / 2, RED);
     var e = still ? 1 : eOut(seg(ti, .45, .9));
     if (e > 0) {
-      ctx.save(); ctx.beginPath(); ctx.rect(CX + 30, CY - 40, 420, 80); ctx.clip();
-      var x = CX + 36 - (1 - e) * 60, tr = 4.4, w = mw(ctx, 'Click me ', 500) * 22 + 9 * tr;
-      text(ctx, 'Click me ', x, CY + 8, 22, 500, BLACK, 'left', tr); text(ctx, '!', x + w, CY + 8, 22, 500, RED, 'left', 0);
+      var fs = tiny(11), tr = fs * .2, x = CX + 30 - (1 - e) * 40, w = mw(ctx, 'Click me ', 500) * fs + 9 * tr, y = CY + CAP * fs / 2;
+      ctx.save(); ctx.beginPath(); ctx.rect(CX + 24, CY - 40, 600, 80); ctx.clip();
+      text(ctx, 'Click me ', x, y, fs, 500, BLACK, 'left', tr); text(ctx, '!', x + w, y, fs, 500, RED, 'left', 0);
       ctx.restore();
     }
+    scrollDown(ctx, still ? 1 : eOut(seg(ti, 0, .45)));
   }
 
   function setView(ctx, pw, ph) {
     var s = Math.min(pw / W, ph / H);
-    VIEW = { s: s, ox: (pw - W * s) / 2, oy: (ph - H * s) / 2 };
+    VIEW = { s: s, ox: (pw - W * s) / 2, oy: (ph - H * s) / 2, pw: pw, ph: ph };
     ctx.setTransform(s, 0, 0, s, VIEW.ox, VIEW.oy);
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
   }
   function draw(ctx, t, pw, ph) {
     t = ((t % DUR) + DUR) % DUR;
     setView(ctx, pw, ph);
-    if (t < 2) bar1(ctx, t); else if (t < 4) bar2(ctx, t); else if (t < 6) bar3(ctx, t); else if (t < 8) bar4(ctx, t);
-    else if (t < 10) bar5(ctx, t); else if (t < 12) bar6(ctx, t); else if (t < 14) bar7(ctx, t); else bar8(ctx, t);
+    if (t < 2) bar1(ctx, t); else if (t < 4) bar2(ctx, t); else if (t < 8) bar3(ctx, t);
+    else if (t < 9.5) { bar5(ctx, 8 + (t - 8) * 4 / 3); if (t < 8.2) particles(ctx, t, 1 - seg(t, 8, 8.2), false); }
+    else if (t < 12) bar7(ctx, 12 + (t - 9.5) * .8); else bar8(ctx, t);
   }
 
-  // build every cached bitmap/layer for this canvas size up front, so playback never stalls on first use
-  function prewarm(ctx, pw, ph) { [7.25, 10.75, 11.5, 12.05, 14.1].forEach(function (t) { draw(ctx, t, pw, ph); }); }
-  global.UMA_REEL = { W: W, H: H, DUR: DUR, init: init, draw: draw, idle: idle, prewarm: prewarm, setBlurSamples: function (n) { BLUR_SAMPLES = Math.max(1, n | 0); } };
+  // build the particle formations for this canvas size up front, so playback never stalls on first use
+  function prewarm(ctx, pw, ph) { [4.1, 6.1, 9.6, 12.6].forEach(function (t) { draw(ctx, t, pw, ph); }); }
+  global.UMA_REEL = { W: W, H: H, DUR: DUR, init: init, draw: draw, idle: idle, prewarm: prewarm,
+    setBlurSamples: function (n) { BLUR_SAMPLES = Math.max(1, n | 0); }, setDpr: function (d) { DPR = d || 1; } };
 })(window);
  return window.UMA_REEL; })();
 
@@ -483,7 +542,7 @@
     }
     function play() {
       if (mode !== 'idle') return;
-      if (still) { REEL.draw(ctx, 14.5, cv.width, cv.height); return; }   // no motion: just show the logo
+      if (still) { REEL.draw(ctx, 13.5, cv.width, cv.height); return; }   // no motion: just show the logo
       mode = 'play'; t0 = performance.now(); root.style.cursor = 'default';
       if (!raf) raf = requestAnimationFrame(frame);
     }
