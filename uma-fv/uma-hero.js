@@ -1,4 +1,5 @@
-/* U-MA first view — live, code-driven showreel loop (no video file).
+/* U-MA first view — code-driven showreel (no video file).
+   Waits on a red dot with "Click me !"; a click / tap / Enter plays the 15 s reel once, which ends on the red dot again.
    WordPress Raw HTML:
      <div id="uma-hero"></div>
      <script src="https://hanamarufujii.github.io/test_sample/uma-fv/uma-hero.js" defer></script>
@@ -9,8 +10,8 @@
   if (!root) { root = document.createElement('div'); root.id = 'uma-hero'; if (me && me.parentNode) me.parentNode.insertBefore(root, me); else document.body.appendChild(root); }
   if (root.getAttribute('data-ready')) return;
   root.setAttribute('data-ready', '1');
-  root.setAttribute('role', 'img');
-  root.setAttribute('aria-label', 'U-MA — A very creative design studio in Tokyo, Shibuya, since 2000');
+  root.setAttribute('role', 'button'); root.tabIndex = 0;
+  root.setAttribute('aria-label', 'U-MA — A very creative design studio in Tokyo, Shibuya, since 2000. Click to play the showreel.');
   root.style.cssText += ';position:relative;overflow:hidden;background:#fff;';
   var cv = document.createElement('canvas'); cv.style.cssText = 'display:block;width:100%;height:100%;';
   root.innerHTML = ''; root.appendChild(cv);
@@ -31,8 +32,8 @@
     cv.width = Math.round(root.clientWidth * dpr); cv.height = Math.round(root.clientHeight * dpr);
   }
 
-  var REEL = (function () { var window = {}; /* U-MA showreel — "一本のハイフンが、スタジオになる。" (One hyphen becomes the studio.)
-   15 s at 120 BPM, loops (the last frame is the first frame).
+  var REEL = (function () { var window = {}; /* U-MA showreel — "一本の赤い線が、U-MAを留めるクリップになる。" (One red wire becomes the clip that holds U-MA together.)
+   15 s at 120 BPM. Starts and ends on the same red dot.
    Pure function of time: UMA_REEL.draw(ctx, t, pixelWidth, pixelHeight). No timers, no state between frames.
    Design space is 1920x1080; it is fitted ("contain") into any canvas, with backgrounds bled to the edges. */
 (function (global) {
@@ -60,19 +61,7 @@
     setFont(ctx, w, fs); ctx.letterSpacing = (track || 0) + 'px'; ctx.textAlign = align || 'center'; ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = color; ctx.fillText(str, x + (align === 'center' || !align ? (track || 0) / 2 : 0), y); ctx.letterSpacing = '0px';
   }
-  function init(ctx) { cache = {}; setFont(ctx, 700, 100); var m = ctx.measureText('H'); CAP = (m.actualBoundingBoxAscent || 70) / 100; }
-
-  // U-MA: the hyphen is a red bar, centered on the cap height
-  function umaFs(ctx, width) { return width / (mw(ctx, 'U', 700) + mw(ctx, 'MA', 700) + .45); }
-  function uma(ctx, cx, cy, fs) {
-    var wU = mw(ctx, 'U', 700) * fs, wMA = mw(ctx, 'MA', 700) * fs, hw = .30 * fs, g = .075 * fs, tot = wU + g + hw + g + wMA, x0 = cx - tot / 2;
-    return { fs: fs, xU: x0, wU: wU, hx: x0 + wU + g + hw / 2, xMA: x0 + wU + g + hw + g, wMA: wMA, base: cy + CAP * fs / 2, hy: cy, hw: hw, hh: .075 * fs, w: tot, cy: cy };
-  }
-  function drawUMA(ctx, L, color, hyphen) {
-    text(ctx, 'U', L.xU, L.base, L.fs, 700, color, 'left');
-    text(ctx, 'MA', L.xMA, L.base, L.fs, 700, color, 'left');
-    if (hyphen !== false) { ctx.fillStyle = hyphen || RED; ctx.fillRect(L.hx - L.hw / 2, L.hy - L.hh / 2, L.hw, L.hh); }
-  }
+  function init(ctx) { logoInit(); cache = {}; setFont(ctx, 700, 100); var m = ctx.measureText('H'); CAP = (m.actualBoundingBoxAscent || 70) / 100; }
 
   // ---------- drawing helpers ----------
   function bg(ctx, c) { ctx.fillStyle = c; ctx.fillRect(-W * 4, -H * 8, W * 9, H * 17); }   // bleeds to any screen shape
@@ -112,8 +101,43 @@
   }
   function blit(ctx, l, dx) { ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(l.canvas, (dx || 0) * VIEW.s, 0); ctx.restore(); }
 
+  // ---------- the official U-MA logo (from u-ma_logo_simple.svg) ----------
+  // Parts: U, M, A (the separated set, lifted onto the assembled set), the clip, and the complete logo.
+  var LOGO = {"U": "M374.81,1280.45c0,19.55,16.34,35.4,36.51,35.4s36.51-15.85,36.51-35.4v-225.97h137.51v245.49c0,69.58-62.14,133.02-170.81,133.02s-175.99-52.68-175.99-147.39-.28-231.12-.28-231.12h136.19l.37,225.97Z", "M": "M1069.61 1054.48 L937.27 1054.48 L888.24 1251.84 L836.17 1054.48 L703.55 1054.48 L646.25 1429.85 L770.79 1429.85 L789.1 1224.47 L847.44 1429.85 L922.67 1429.85 L982.35 1224.47 L1001.99 1429.85 L1122.83 1429.85 L1069.61 1054.48 Z", "A": "M1178.26 1429.85 L1320.36 1429.85 L1380.51 1179.68 L1446.61 1429.85 L1590.89 1429.85 L1457.03 1054.48 L1306.43 1054.48 L1178.26 1429.85 Z", "clip": "M1125.84,915.42H485.33c-25.93,0-48.71-9.3-65.89-26.89-15.13-15.5-24.81-36.51-27.24-59.16-2.29-21.31,2.14-42.3,12.47-59.09,11.72-19.06,30.15-31.79,53.31-36.81,75.07-16.29,621.05-133.03,626.56-134.2l5.23,24.45c-5.51,1.18-551.45,117.91-626.48,134.19-16.34,3.55-29.24,12.36-37.31,25.48-7.44,12.1-10.6,27.49-8.91,43.33,1.83,17.1,9.03,32.86,20.27,44.37,12.36,12.66,28.96,19.36,48,19.36h640.52c35.25,0,60.08-4.69,75.89-14.33,15.9-9.69,23.3-24.97,23.3-48.09,0-38.99-27.12-54.19-96.73-54.19h-454.45c-20.3,0-36.57,4.65-47.03,13.45-10.42,8.77-12.61,19.3-12.61,26.59,0,25.77,23.21,41.17,45.65,41.17h424.82v25h-424.82c-44.22,0-70.65-33.64-70.65-66.17,0-17.81,7.64-34.05,21.52-45.72,15.03-12.64,36.85-19.32,63.12-19.32h454.45c37.49,0,62.76,4.09,81.93,13.27,26.41,12.64,39.8,34.82,39.8,65.92,0,78.36-70.88,87.42-124.2,87.42Z", "full": "M1381.29,479.75l-133.86-375.38h-150.6l-44.46,126.38h0l-17.57-120.97c11.89-2.54,18.77-4.01,19.37-4.14l-5.23-24.45c-1.53.33-44.94,9.61-108.39,23.18h-38.88l-2.18,8.78c-28.43,6.08-59.38,12.7-91.43,19.56l-7.48-28.35h-132.62l-9.21,60.3c-38.68,8.28-75.83,16.24-109.01,23.35v-83.66h-137.51v113.84c-18.41,6.21-33.21,17.81-43.16,33.99-10.33,16.79-14.75,37.78-12.47,59.09,2.18,20.35,10.23,39.36,22.81,54.26-1.21.12-2.45.18-3.69.18-20.16,0-36.51-15.85-36.51-35.4l-.37-225.97h-136.19s.28,136.41.28,231.12,67.32,147.39,175.99,147.39c83.01,0,138.87-37.02,160.62-85.51h83.68l-12.58,82.39h124.54l7.34-82.39h45.91l23.41,82.39h75.23l23.94-82.39h47.5l7.88,82.39h144.37l20.41-84.89c29.51-4.18,57.93-14.82,72.72-40.45l33.12,125.35h144.27ZM753.5,274.37l17.78,62.59h-23.36l5.58-62.59ZM632.45,336.96h-8.18c-22.44,0-45.65-15.4-45.65-41.17,0-7.29,2.19-17.82,12.61-26.59,10.46-8.8,26.73-13.45,47.03-13.45h6.58l-12.4,81.2ZM840.52,255.75h23.55l-11.42,45.98-12.13-45.98ZM946.76,274.37l5.98,62.59h-24.17l18.19-62.59ZM892.79,140.15l-22.5,90.6h-36.36l-19.48-73.84c27.22-5.82,53.62-11.47,78.34-16.76ZM390.37,265.3c5.32-8.65,12.75-15.41,21.86-20.04v85.07c0,9.13-3.56,17.44-9.41,23.72-.36-.35-.73-.7-1.09-1.06-11.24-11.51-18.43-27.27-20.27-44.37-1.7-15.84,1.46-31.23,8.91-43.33ZM547.54,372.36c1.46-7.38,2.2-14.9,2.2-22.5v-136.26c31.85-6.83,67.6-14.49,104.97-22.49l-6.05,39.65h-10.4c-26.27,0-48.09,6.68-63.12,19.32-13.88,11.67-21.52,27.91-21.52,45.72,0,32.53,26.43,66.17,70.65,66.17h4.37l-1.59,10.4h-79.51ZM744.77,372.36l.93-10.4h32.69l2.95,10.4h-36.57ZM918.28,372.36l3.02-10.4h33.83l.99,10.4h-37.84ZM1166.14,358.03c-7.47,4.56-16.96,8-28.61,10.38l24.68-102.66c19,8.48,27.23,22.73,27.23,44.19,0,23.12-7.41,38.4-23.3,48.09ZM1174.65,244.02c-2.1-1-4.27-1.94-6.53-2.83l2.79-11.62,3.83,14.49s-.06-.03-.1-.05Z"};
+  var LP = null, LIFT = 432.05, ASHIFT = 174.01, FULLX = 35.59, FULLY = 518.06, INK = '#231815';
+  var LG = { x0: 238.62, y0: 622.43, w: 1178.26, h: 378.5 };          // letters' box in logo units
+  var CLIPLINE = 'M1112,610 L468,746 C384,764 376,903 485,903 L1126,903 C1268,903 1268,761 1128,761 L674,761 C576,761 576,867 660,867 L1085,867', CLEN = 3000;
+  var CLIP_START = [1112, 610], CLIP_ANGLE = Math.atan2(746 - 610, 468 - 1112);  // where the wire starts and which way it runs
+  function logoInit() { if (!LP) LP = { U: new Path2D(LOGO.U), M: new Path2D(LOGO.M), A: new Path2D(LOGO.A), clip: new Path2D(LOGO.clip), full: new Path2D(LOGO.full), line: new Path2D(CLIPLINE) }; }
+  // layout: the letters' box centered on (cx, cy), `width` design px wide
+  function logoL(cx, cy, width) { var k = width / LG.w; return { k: k, ox: cx - (LG.x0 + LG.w / 2) * k, oy: cy - (LG.y0 + LG.h / 2) * k, cx: cx, cy: cy, w: width, h: LG.h * k, top: cy - LG.h * k / 2, bot: cy + LG.h * k / 2, wire: 25 * k }; }
+  function toLogo(ctx, L) { ctx.translate(L.ox, L.oy); ctx.scale(L.k, L.k); }
+  function logoPt(L, p) { return [L.ox + p[0] * L.k, L.oy + p[1] * L.k]; }
+  // the three letters; off = { U: [dx, dy], M: [...], A: [...] } in design px
+  function letters(ctx, L, color, off) {
+    off = off || {};
+    [['U', 0], ['M', 0], ['A', -ASHIFT]].forEach(function (d) {
+      var o = off[d[0]] || [0, 0];
+      ctx.save(); ctx.translate(o[0], o[1]); toLogo(ctx, L); ctx.translate(d[1], -LIFT); ctx.fillStyle = color; ctx.fill(LP[d[0]]); ctx.restore();
+    });
+  }
+  // the clip, drawn along its own wire from the start (p = 0) to complete (p = 1)
+  function clipDraw(ctx, L, color, p) {
+    if (p <= 0) return;
+    ctx.save(); toLogo(ctx, L);
+    if (p >= 1) { ctx.fillStyle = color; ctx.fill(LP.clip); ctx.restore(); return; }
+    ctx.clip(LP.clip); ctx.strokeStyle = color; ctx.lineWidth = 46; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+    ctx.setLineDash([CLEN * p, CLEN * 2]); ctx.stroke(LP.line); ctx.restore();
+  }
+  function fullLogo(ctx, L, color) { ctx.save(); toLogo(ctx, L); ctx.translate(FULLX, FULLY); ctx.fillStyle = color; ctx.fill(LP.full); ctx.restore(); }
+  // a straight piece of the red wire (rounded ends), centered on (x, y)
+  function wire(ctx, x, y, len, th, rot, color) {
+    if (len <= 0 || th <= 0) return;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(rot || 0); rrect(ctx, -len / 2, -th / 2, len, th, th / 2, color || RED); ctx.restore();
+  }
+
   // ================= SCENES =================
-  // Bar 1 (0–2 s) HOOK: a red dot → a line across → it splits the screen open → U-MA slams in
+  // Bar 1 (0–2 s) HOOK: a red dot → a line across → it splits the screen open → U M A slam in
   function bar1(ctx, t) {
     bg(ctx, WHITE);
     if (t < 1) {
@@ -125,11 +149,11 @@
     ctx.fillStyle = BLACK; ctx.fillRect(-W, CY - g / 2, W * 3, g);
     ctx.fillStyle = RED; ctx.fillRect(-W, CY - g / 2 - 4, W * 3, 8); ctx.fillRect(-W, CY + g / 2 - 4, W * 3, 8);
     if (t >= 1.5) {
-      var L = uma(ctx, CX, CY, umaFs(ctx, 1720));
+      var L = logoL(CX, CY, 1400);
       ctx.save(); ctx.beginPath(); ctx.rect(-W, CY - g / 2 + 4, W * 3, Math.max(0, g - 8)); ctx.clip();
       trail(ctx, t, function (tt) {
         var s = lerp(2.6, 1, eOut(seg(tt, 1.5, 1.85)));
-        ctx.save(); ctx.translate(CX, CY); ctx.scale(s, s); ctx.translate(-CX, -CY); drawUMA(ctx, L, WHITE); ctx.restore();
+        ctx.save(); ctx.translate(CX, CY); ctx.scale(s, s); ctx.translate(-CX, -CY); letters(ctx, L, WHITE); ctx.restore();
       });
       ctx.restore();
     }
@@ -138,7 +162,7 @@
   // Bar 2 (2–4 s) KINETIC TYPE: A VERY / CREATIVE / DESIGN / STUDIO push each other out, one per beat
   var WORDS = ['U-MA', 'A VERY', 'CREATIVE', 'DESIGN', 'STUDIO'];
   function wordAt(ctx, k, y, track) {
-    if (k === 0) { var L = uma(ctx, CX, CY + y, umaFs(ctx, 1720)); drawUMA(ctx, L, WHITE); return; }
+    if (k === 0) { letters(ctx, logoL(CX, CY + y, 1400), WHITE); return; }
     var fs = fitFs(ctx, WORDS[k], 700, 1720, 760);
     text(ctx, WORDS[k], CX, CY + y + CAP * fs / 2, fs, 700, WHITE, 'center', track * fs);
   }
@@ -152,10 +176,10 @@
     });
   }
 
-  // Bar 3 (4–6 s) SHAPE MORPH: STUDIO's O → disc → square → triangle → grows into white; the red hyphen is left
+  // Bar 3 (4–6 s) SHAPE MORPH: STUDIO's O → disc → square → triangle → grows into white; a short red wire is left
   function bar3(ctx, t) {
     var fs = fitFs(ctx, 'STUDIO', 700, 1720, 760), x0 = CX - mw(ctx, 'STUDIO', 700) * fs / 2, base = CY + CAP * fs / 2;
-    var L4 = uma(ctx, CX, CY, umaFs(ctx, 1250));
+    var C4 = city();
     if (t < 5.5 || seg(t, 5.5, 5.95) < 1) bg(ctx, BLACK);
     if (t < 4.5) {
       'STUDIO'.split('').forEach(function (c, i) {
@@ -175,10 +199,11 @@
     var m2 = eInOut(seg(t, 5, 5.4)), k = lerp(1, 9, eIn(seg(t, 5.5, 5.95)));
     poly(ctx, CX, CY, function (th) { return lerp(230 * rSquare(th), 202 * rTri(th), m2) * k; }, lerp(Math.PI / 2, 2 * Math.PI / 3, m2), WHITE);
     var hs = spring(seg(t, 5.62, 6));
-    if (hs > 0) { ctx.fillStyle = RED; ctx.fillRect(CX - L4.hw * hs / 2, CY - L4.hh * hs / 2, L4.hw * hs, L4.hh * hs); }
+    if (hs > 0) wire(ctx, CX, CY, 260 * hs, C4.th * hs, 0, RED);
   }
 
-  // Bar 4 (6–8 s) 2D → 3D: the hyphen draws U-MA, the letters extrude into buildings, the camera rises to a street grid
+  // Bar 4 (6–8 s) 2D → 3D: U M A rise out of the red wire, extrude into buildings, the camera rises to a street grid
+  function city() { var L = logoL(CX, CY - 30, 1100); return { L: L, wy: L.bot + 46, th: L.wire }; }
   function cityParams(t) {
     var d = 80 * eOut(seg(t, 6.5, 6.9)), sy = 1, sk = 0, ang = -50, push = 1;
     if (t >= 7) { var m = eInOut(seg(t, 7, 7.45)); sy = lerp(1, .42, m); sk = lerp(0, -.35, m); ang = lerp(-50, -90, m); d = lerp(80, 220, m); push = lerp(1, 1.12, m); }
@@ -193,34 +218,35 @@
   function label(ctx, str, x, y, align, color) { text(ctx, str, x, y, 24, 500, color || BLACK, align, 7.5); }
   function bar4(ctx, t) {
     bg(ctx, WHITE);
-    var L = uma(ctx, CX, CY, umaFs(ctx, 1250)), P = cityParams(t);
+    var C = city(), L = C.L, P = cityParams(t);
     if (t >= 7.5) grid(ctx, t);
-    var mv = eInOut(seg(t, 6, 6.35)), hx = lerp(CX, L.hx, mv), rv = eOut(seg(t, 6.1, 6.45));
+    var mv = eInOut(seg(t, 6, 6.35)), wy = lerp(CY, C.wy, mv), wl = lerp(260, L.w, mv), rv = eOut(seg(t, 6.12, 6.5));
     function ground(fn) { ctx.save(); ctx.translate(CX, CY); ctx.scale(P.push, P.push); ctx.transform(1, 0, P.sk, P.sy, 0, 0); ctx.translate(-CX, -CY); fn(); ctx.restore(); }
-    function letters(color) {
-      var ru = rv * (L.wU + .1 * L.fs), rm = rv * (L.wMA + .1 * L.fs);
-      if (ru > 0) { ctx.save(); ctx.beginPath(); ctx.rect(hx - L.hw / 2 - ru, -H, ru, H * 3); ctx.clip(); text(ctx, 'U', L.xU + (1 - rv) * L.wU * .7, L.base, L.fs, 700, color, 'left'); ctx.restore(); }
-      if (rm > 0) { ctx.save(); ctx.beginPath(); ctx.rect(hx + L.hw / 2, -H, rm, H * 3); ctx.clip(); text(ctx, 'MA', L.xMA - (1 - rv) * L.wMA * .7, L.base, L.fs, 700, color, 'left'); ctx.restore(); }
-    }
     // extrusion: layers stacked along the camera's "up", far ones lighter (each layer is one drawImage of a cached bitmap)
     var step = Math.max(4, P.d / 12), n = Math.floor(P.d / step);   // at most 12 layers
     if (n > 0) {
       // the grey sides are drawn into a half-resolution buffer (a quarter of the pixels), the black faces stay sharp
-      var pad = 20, bx = L.xU - pad, by = L.base - CAP * L.fs - pad, bw = L.xMA + L.wMA - L.xU + pad * 2, bh = CAP * L.fs + pad * 2;
+      var pad = 20, bw = L.w + pad * 2, bh = L.h + pad * 2, bx = L.cx - bw / 2, by = L.cy - bh / 2;
       var main = ctx, hb = layers.half;
       if (!hb || hb.width !== Math.ceil(main.canvas.width / 2) || hb.height !== Math.ceil(main.canvas.height / 2)) { hb = layers.half = document.createElement('canvas'); hb.width = Math.ceil(main.canvas.width / 2); hb.height = Math.ceil(main.canvas.height / 2); }
       ctx = hb.getContext('2d'); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, hb.width, hb.height); ctx.setTransform(VIEW.s / 2, 0, 0, VIEW.s / 2, VIEW.ox / 2, VIEW.oy / 2);
       for (var k = n; k >= 1; k--) {
         var dx = Math.cos(P.ang) * k * step, dy = Math.sin(P.ang) * k * step, lv = Math.round(5 * (1 - k / n));
-        var shade = Math.round(lerp(232, 150, lv / 5));
-        var sp = sprite('city' + lv, bw, bh, function (x) { text(x, 'U', pad, bh - pad, L.fs, 700, 'rgb(' + shade + ',' + shade + ',' + shade + ')', 'left'); text(x, 'MA', L.xMA - L.xU + pad, bh - pad, L.fs, 700, 'rgb(' + shade + ',' + shade + ',' + shade + ')', 'left'); });
+        var shade = Math.round(lerp(232, 150, lv / 5)), col = 'rgb(' + shade + ',' + shade + ',' + shade + ')';
+        var sp = sprite('city' + lv, bw, bh, function (x) { letters(x, logoL(bw / 2, bh / 2, L.w), col); });
         ctx.save(); ctx.translate(dx, dy);
-        ground(function () { ctx.drawImage(sp.c, bx, by, bw, bh); ctx.fillStyle = '#a5000d'; ctx.fillRect(hx - L.hw / 2, L.hy - L.hh / 2, L.hw, L.hh); });
+        ground(function () { ctx.drawImage(sp.c, bx, by, bw, bh); wire(ctx, CX, wy, wl, C.th, 0, '#a5000d'); });
         ctx.restore();
       }
       ctx = main; ctx.save(); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(hb, 0, 0, main.canvas.width, main.canvas.height); ctx.restore();
     }
-    ground(function () { letters(BLACK); ctx.fillStyle = RED; ctx.fillRect(hx - L.hw / 2, L.hy - L.hh / 2, L.hw, L.hh); });
+    ground(function () {
+      if (rv > 0) {   // the letters rise out of the wire
+        ctx.save(); ctx.beginPath(); ctx.rect(-W * 4, -H * 8, W * 9, wy - C.th / 2 + H * 8); ctx.clip();
+        var up = (1 - rv) * (L.h + 90); letters(ctx, L, BLACK, { U: [0, up], M: [0, up * 1.1], A: [0, up * 1.2] }); ctx.restore();
+      }
+      wire(ctx, CX, wy, wl, C.th, 0, RED);
+    });
     if (t >= 7.5) { var e = eOut(seg(t, 7.5, 7.85)); label(ctx, 'IN TOKYO, SHIBUYA', 120 - (1 - e) * 80, 960, 'left'); }
   }
 
@@ -242,7 +268,7 @@
   }
   function bar5(ctx, t) {
     bg(ctx, WHITE);
-    var m = eInOut(seg(t, 8, 8.4)), L = uma(ctx, CX, CY, umaFs(ctx, 1250));
+    var m = eInOut(seg(t, 8, 8.4)), C = city(), L = C.L;
     ctx.fillStyle = BLACK;
     for (var i = 0; i <= NT; i++) {           // grid lines fold into ticks
       var fx = i <= 20 ? i * 96 : W + (i - 20) * 96, tx = tickX(i), tall = i % 10 === 0 || i === NT ? 44 : 22;
@@ -253,12 +279,12 @@
     for (var j = 0; j <= 11; j++) ctx.fillRect(lerp(CX - W / 2, X0 - 1, m), lerp(j * 96 + 12, BASE, m) - 1, hl, 2);
     if (m < 1) {                              // the letters fold down into the baseline
       ctx.save(); ctx.translate(0, BASE); ctx.scale(1, 1 - m); ctx.translate(0, -BASE); ctx.translate(0, (BASE - CY) * m);
-      text(ctx, 'U', L.xU, L.base, L.fs, 700, BLACK, 'left'); text(ctx, 'MA', L.xMA, L.base, L.fs, 700, BLACK, 'left'); ctx.restore();
+      letters(ctx, L, BLACK); ctx.restore();
       var lo = eIn(seg(t, 8, 8.3)); label(ctx, 'IN TOKYO, SHIBUYA', 120, 960 + lo * 200, 'left');
     }
-    // the hyphen turns into the red marker at 2000
-    var hm = eInOut(seg(t, 8, 8.4)), mh = lerp(L.hh, 120, hm) + 140 * eOut(seg(t, 9.5, 9.85)), mw_ = lerp(L.hw, 8, hm);
-    var mx = lerp(L.hx, tickX(0), hm), my = lerp(L.hy, BASE - mh / 2, hm);
+    // the red wire turns into the red marker at 2000
+    var hm = eInOut(seg(t, 8, 8.4)), mh = lerp(C.th, 120, hm) + 140 * eOut(seg(t, 9.5, 9.85)), mw_ = lerp(L.w, 8, hm);
+    var mx = lerp(CX, tickX(0), hm), my = lerp(C.wy, BASE - mh / 2, hm);
     // bars
     for (var b = 0; b <= NT; b++) { var e = eOut(seg(t, 9 + b * .012, 9.35 + b * .012)), h = barH(b) * e; if (h > 0) ctx.fillRect(tickX(b) - 11, BASE - h, 22, h); }
     ctx.fillStyle = RED; ctx.fillRect(mx - mw_ / 2, my - mh / 2, mw_, mh);
@@ -272,7 +298,7 @@
     if (t >= 9.5) { var se = eOut(seg(t, 9.5, 9.8)); label(ctx, 'SINCE 2000', tickX(0) + 20 + (1 - se) * 60, BASE - 230, 'left', RED); }
   }
 
-  // Bar 6 (10–12 s) MASK: the bars stand up into a black wall; U-MA opens as a window onto running type
+  // Bar 6 (10–12 s) MASK: the bars stand up into a black wall; U M A open as a window onto running type
   var LINE = 'A VERY CREATIVE DESIGN STUDIO — IN TOKYO, SHIBUYA — SINCE 2000 — ';
   function marquee(ctx, t) {
     bg(ctx, WHITE);
@@ -288,10 +314,9 @@
     var l = layer(ctx, 'wall');
     l.fillStyle = BLACK; l.fillRect(-W, -H, W * 3, H * 3);
     var sc = eOut(seg(t, 10.5, 10.95)) * lerp(1, 1.06, seg(t, 11, 12));
-    var L = uma(l, CX, CY, umaFs(l, 1720));
-    l.save(); l.translate(L.hx, CY); l.scale(sc, sc); l.translate(-L.hx, -CY);
-    l.globalCompositeOperation = 'destination-out'; drawUMA(l, L, '#000', false); l.globalCompositeOperation = 'source-over';
-    l.fillStyle = RED; l.fillRect(L.hx - L.hw / 2, L.hy - L.hh / 2, L.hw, L.hh); l.restore();
+    var L = logoL(CX, CY, 1500);
+    l.save(); l.translate(CX, CY); l.scale(sc, sc); l.translate(-CX, -CY);
+    l.globalCompositeOperation = 'destination-out'; letters(l, L, '#000'); l.globalCompositeOperation = 'source-over'; l.restore();
     return l;
   }
   function bar6(ctx, t) {
@@ -324,7 +349,7 @@
     return frozen;
   }
   function bar7(ctx, t) {
-    var sh = H / 8, Lg = uma(ctx, CX, CY, umaFs(ctx, 1720));
+    var sh = H / 8, LF = logoL(CX, CY, 1000);
     bg(ctx, WHITE);
     // SPEED, — whips in from the right as the wall leaves, and out to the left
     if (t < 12.75) {
@@ -359,19 +384,20 @@
       });
       ctx.restore();
     }
-    // ! — the red hyphen stands up into an exclamation mark (with the red dot of frame 1), then lies back down
+    // ! — the red wire stands up into an exclamation mark (with the red dot of frame 1), then lies down
+    //     onto the start of the clip while U M A slide in
     if (t >= 13.5) {
-      var up = eOut(seg(t, 13.5, 13.7)), down = eInOut(seg(t, 13.75, 14)), sc = spring(seg(t, 13.5, 13.66));
-      var len = lerp(lerp(Lg.hw, 330, up), Lg.hw, down), th = lerp(lerp(Lg.hh, 74, up), Lg.hh, down);
-      var x = lerp(CX, Lg.hx, down), y = lerp(lerp(CY, CY - 70, up), CY, down), rot = lerp(Math.PI / 2 * up, 0, down);
+      var up = eOut(seg(t, 13.5, 13.7)), dn = eInOut(seg(t, 13.75, 14)), sc = spring(seg(t, 13.5, 13.66)), S = logoPt(LF, CLIP_START);
+      var len = lerp(lerp(240, 330, up), 34, dn), th = lerp(lerp(LF.wire, 64, up), LF.wire, dn);
+      var x = lerp(CX, S[0], dn), y = lerp(lerp(CY, CY - 70, up), S[1], dn), rot = lerp(Math.PI / 2 * up, CLIP_ANGLE, dn);
       var dr = 40 * spring(seg(t, 13.58, 13.75)) * (1 - eIn(seg(t, 13.75, 13.95)));
       if (dr > .5) { ctx.fillStyle = RED; ctx.beginPath(); ctx.arc(CX, CY + 175, dr, 0, Math.PI * 2); ctx.fill(); }
       trail(ctx, t, function (tt) {
         var o = 1 - eOut(seg(tt, 13.75, 14));
         if (o >= 1) return;
-        text(ctx, 'U', Lg.xU - o * 1500, Lg.base, Lg.fs, 700, BLACK, 'left'); text(ctx, 'MA', Lg.xMA + o * 1500, Lg.base, Lg.fs, 700, BLACK, 'left');
+        letters(ctx, LF, BLACK, { U: [-o * 1500, 0], M: [o * 1500, 0], A: [o * 1700, 0] });
       });
-      ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.fillStyle = RED; ctx.fillRect(-len * sc / 2, -th * sc / 2, len * sc, th * sc); ctx.restore();
+      wire(ctx, x, y, len * sc, th * sc, rot, RED);
     }
     // the wall leaves in eight fast slices
     if (t < 12.5) {
@@ -385,53 +411,89 @@
     }
   }
 
-  // Bar 8, first half (14–15 s) END TITLE, then everything folds back into the red dot of frame 1
+  // Bar 8, first half (14–15 s) the wire draws the clip around U M A → the official logo → back to the red dot
   function bar8(ctx, t) {
     bg(ctx, WHITE);
-    var Lg = uma(ctx, CX, CY, umaFs(ctx, 1720)), Lf = uma(ctx, CX, CY, umaFs(ctx, 1080));
-    var a = eInOut(seg(t, 14, 14.3)), fs = lerp(Lg.fs, Lf.fs, a), L = uma(ctx, CX, CY, fs);
-    var out = eIn(seg(t, 14.5, 14.85)), dot = eInOut(seg(t, 14.5, 15));
-    var inn = eOut(seg(t, 14, 14.3)), slide = (1 - inn) * 900 + out * 1500;
-    label(ctx, 'A VERY CREATIVE DESIGN STUDIO', 120 - slide, 150, 'left');
-    label(ctx, 'IN TOKYO, SHIBUYA', 120 - slide, 960, 'left');
-    label(ctx, 'SINCE 2000', 1800 + slide, 960, 'right');
-    var hx = lerp(L.hx, CX, dot);
-    trail(ctx, t, function (tt) {
-      var o = eIn(seg(tt, 14.5, 14.85)), s = 1 - o;
-      if (s <= 0) return;
-      ctx.save(); ctx.translate(hx, CY); ctx.scale(s, s); ctx.translate(-L.hx, -CY); drawUMA(ctx, L, BLACK, false); ctx.restore();
-    });
-    var w = lerp(L.hw, 32, dot), h = lerp(L.hh, 32, dot);
-    rrect(ctx, hx - w / 2, CY - h / 2, w, h, lerp(0, 16, dot), RED);
+    var LF = logoL(CX, CY, 1000), out = eIn(seg(t, 14.75, 15)), inn = eOut(seg(t, 14.3, 14.5)), slide = (1 - inn) * 900 + out * 1500;
+    if (t >= 14.3) {
+      label(ctx, 'A VERY CREATIVE DESIGN STUDIO', 120 - slide, 150, 'left');
+      label(ctx, 'IN TOKYO, SHIBUYA', 120 - slide, 960, 'left');
+      label(ctx, 'SINCE 2000', 1800 + slide, 960, 'right');
+    }
+    var push = lerp(1, 1.03, seg(t, 14.3, 14.75)), shrink = 1 - eIn(seg(t, 14.75, 14.97)), s = push * shrink;
+    if (s > 0) {
+      ctx.save(); ctx.translate(CX, CY); ctx.scale(s, s); ctx.translate(-CX, -CY);
+      if (t < 14.3) { letters(ctx, LF, BLACK); clipDraw(ctx, LF, RED, lerp(.012, 1, eInOut(seg(t, 14, 14.3)))); }
+      else fullLogo(ctx, LF, INK);                       // the official logo, in its own color
+      ctx.restore();
+    }
+    var d = 32 * eOut(seg(t, 14.8, 15));
+    if (d > .5) rrect(ctx, CX - d / 2, CY - d / 2, d, d, d / 2, RED);
   }
 
-  function draw(ctx, t, pw, ph) {
-    t = ((t % DUR) + DUR) % DUR;
+  // Waiting screen: the red dot appears, "Click me !" slides in, the dot beats at 120 BPM.
+  // ti = seconds since the waiting screen started; still = no motion (prefers-reduced-motion)
+  function idle(ctx, ti, pw, ph, still) {
+    setView(ctx, pw, ph); bg(ctx, WHITE);
+    var a = still ? 1 : spring(seg(ti, 0, .5)), phase = (((ti - .5) % .5) + .5) % .5 / .5;
+    var pul = still || ti < .5 ? 0 : 1 - eOut(Math.min(1, phase * 2.5)), r = 32 * a * (1 + .18 * pul);
+    if (r > .5) rrect(ctx, CX - r / 2, CY - r / 2, r, r, r / 2, RED);
+    var e = still ? 1 : eOut(seg(ti, .45, .9));
+    if (e > 0) {
+      ctx.save(); ctx.beginPath(); ctx.rect(CX + 30, CY - 40, 420, 80); ctx.clip();
+      var x = CX + 36 - (1 - e) * 60, tr = 4.4, w = mw(ctx, 'Click me ', 500) * 22 + 9 * tr;
+      text(ctx, 'Click me ', x, CY + 8, 22, 500, BLACK, 'left', tr); text(ctx, '!', x + w, CY + 8, 22, 500, RED, 'left', 0);
+      ctx.restore();
+    }
+  }
+
+  function setView(ctx, pw, ph) {
     var s = Math.min(pw / W, ph / H);
     VIEW = { s: s, ox: (pw - W * s) / 2, oy: (ph - H * s) / 2 };
     ctx.setTransform(s, 0, 0, s, VIEW.ox, VIEW.oy);
     ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  }
+  function draw(ctx, t, pw, ph) {
+    t = ((t % DUR) + DUR) % DUR;
+    setView(ctx, pw, ph);
     if (t < 2) bar1(ctx, t); else if (t < 4) bar2(ctx, t); else if (t < 6) bar3(ctx, t); else if (t < 8) bar4(ctx, t);
     else if (t < 10) bar5(ctx, t); else if (t < 12) bar6(ctx, t); else if (t < 14) bar7(ctx, t); else bar8(ctx, t);
   }
 
   // build every cached bitmap/layer for this canvas size up front, so playback never stalls on first use
-  function prewarm(ctx, pw, ph) { [7.25, 10.75, 11.5, 12.05].forEach(function (t) { draw(ctx, t, pw, ph); }); }
-  global.UMA_REEL = { W: W, H: H, DUR: DUR, init: init, draw: draw, prewarm: prewarm, setBlurSamples: function (n) { BLUR_SAMPLES = Math.max(1, n | 0); } };
+  function prewarm(ctx, pw, ph) { [7.25, 10.75, 11.5, 12.05, 14.1].forEach(function (t) { draw(ctx, t, pw, ph); }); }
+  global.UMA_REEL = { W: W, H: H, DUR: DUR, init: init, draw: draw, idle: idle, prewarm: prewarm, setBlurSamples: function (n) { BLUR_SAMPLES = Math.max(1, n | 0); } };
 })(window);
  return window.UMA_REEL; })();
 
   function start() {
     fit(true); REEL.init(ctx); REEL.setBlurSamples(1);   // live playback: real 60 fps motion, no blur copies
-    REEL.prewarm(ctx, cv.width, cv.height); REEL.draw(ctx, 0, cv.width, cv.height);
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) { REEL.draw(ctx, 14.3, cv.width, cv.height); return; }
-    var t0 = performance.now(), visible = true, raf = 0;
-    function tick(now) { raf = 0; if (!visible) return; REEL.draw(ctx, (now - t0) / 1000, cv.width, cv.height); raf = requestAnimationFrame(tick); }
-    if ('IntersectionObserver' in window) new IntersectionObserver(function (e) { visible = e[0].isIntersecting; if (visible && !raf) raf = requestAnimationFrame(tick); }).observe(root);
-    raf = requestAnimationFrame(tick);
-    var tm; window.addEventListener('resize', function () { clearTimeout(tm); tm = setTimeout(function () { var w = cv.width; fit(false); if (cv.width !== w) REEL.prewarm(ctx, cv.width, cv.height); }, 120); });
-    window.addEventListener('orientationchange', function () { setTimeout(function () { fit(true); }, 300); });
+    REEL.prewarm(ctx, cv.width, cv.height);
+    var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var mode = 'idle', t0 = performance.now(), visible = true, raf = 0;
+    function frame(now) {
+      raf = 0; if (!visible) return;
+      if (mode === 'play') {
+        var t = (now - t0) / 1000;
+        if (t < REEL.DUR) REEL.draw(ctx, t, cv.width, cv.height);
+        else { mode = 'idle'; t0 = now - 500; root.style.cursor = 'pointer'; }   // back on the dot: "Click me !" slides in again
+      }
+      if (mode === 'idle') REEL.idle(ctx, (now - t0) / 1000, cv.width, cv.height, still);
+      if (!still || mode === 'play') raf = requestAnimationFrame(frame);
+    }
+    function play() {
+      if (mode !== 'idle') return;
+      if (still) { REEL.draw(ctx, 14.5, cv.width, cv.height); return; }   // no motion: just show the logo
+      mode = 'play'; t0 = performance.now(); root.style.cursor = 'default';
+      if (!raf) raf = requestAnimationFrame(frame);
+    }
+    root.style.cursor = 'pointer';
+    root.addEventListener('click', play);
+    root.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); play(); } });
+    if ('IntersectionObserver' in window) new IntersectionObserver(function (e) { visible = e[0].isIntersecting; if (visible && !raf) raf = requestAnimationFrame(frame); }).observe(root);
+    raf = requestAnimationFrame(frame);
+    var tm; window.addEventListener('resize', function () { clearTimeout(tm); tm = setTimeout(function () { var w = cv.width; fit(false); if (cv.width !== w) REEL.prewarm(ctx, cv.width, cv.height); if (!raf) raf = requestAnimationFrame(frame); }, 120); });
+    window.addEventListener('orientationchange', function () { setTimeout(function () { fit(true); if (!raf) raf = requestAnimationFrame(frame); }, 300); });
   }
   var face = window.FontFace ? new FontFace('Jost', 'url(' + base + 'fonts/Jost.ttf)', { weight: '100 900' }) : null;
   if (face) face.load().then(function (f) { document.fonts.add(f); return Promise.all([document.fonts.load('700 100px Jost'), document.fonts.load('500 24px Jost')]); }).then(start, start);

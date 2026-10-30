@@ -1,4 +1,5 @@
-/* U-MA first view — live, code-driven showreel loop (no video file).
+/* U-MA first view — code-driven showreel (no video file).
+   Waits on a red dot with "Click me !"; a click / tap / Enter plays the 15 s reel once, which ends on the red dot again.
    WordPress Raw HTML:
      <div id="uma-hero"></div>
      <script src="https://hanamarufujii.github.io/test_sample/uma-fv/uma-hero.js" defer></script>
@@ -9,8 +10,8 @@
   if (!root) { root = document.createElement('div'); root.id = 'uma-hero'; if (me && me.parentNode) me.parentNode.insertBefore(root, me); else document.body.appendChild(root); }
   if (root.getAttribute('data-ready')) return;
   root.setAttribute('data-ready', '1');
-  root.setAttribute('role', 'img');
-  root.setAttribute('aria-label', 'U-MA — A very creative design studio in Tokyo, Shibuya, since 2000');
+  root.setAttribute('role', 'button'); root.tabIndex = 0;
+  root.setAttribute('aria-label', 'U-MA — A very creative design studio in Tokyo, Shibuya, since 2000. Click to play the showreel.');
   root.style.cssText += ';position:relative;overflow:hidden;background:#fff;';
   var cv = document.createElement('canvas'); cv.style.cssText = 'display:block;width:100%;height:100%;';
   root.innerHTML = ''; root.appendChild(cv);
@@ -35,15 +36,32 @@
 
   function start() {
     fit(true); REEL.init(ctx); REEL.setBlurSamples(1);   // live playback: real 60 fps motion, no blur copies
-    REEL.prewarm(ctx, cv.width, cv.height); REEL.draw(ctx, 0, cv.width, cv.height);
-    var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduce) { REEL.draw(ctx, 14.3, cv.width, cv.height); return; }
-    var t0 = performance.now(), visible = true, raf = 0;
-    function tick(now) { raf = 0; if (!visible) return; REEL.draw(ctx, (now - t0) / 1000, cv.width, cv.height); raf = requestAnimationFrame(tick); }
-    if ('IntersectionObserver' in window) new IntersectionObserver(function (e) { visible = e[0].isIntersecting; if (visible && !raf) raf = requestAnimationFrame(tick); }).observe(root);
-    raf = requestAnimationFrame(tick);
-    var tm; window.addEventListener('resize', function () { clearTimeout(tm); tm = setTimeout(function () { var w = cv.width; fit(false); if (cv.width !== w) REEL.prewarm(ctx, cv.width, cv.height); }, 120); });
-    window.addEventListener('orientationchange', function () { setTimeout(function () { fit(true); }, 300); });
+    REEL.prewarm(ctx, cv.width, cv.height);
+    var still = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var mode = 'idle', t0 = performance.now(), visible = true, raf = 0;
+    function frame(now) {
+      raf = 0; if (!visible) return;
+      if (mode === 'play') {
+        var t = (now - t0) / 1000;
+        if (t < REEL.DUR) REEL.draw(ctx, t, cv.width, cv.height);
+        else { mode = 'idle'; t0 = now - 500; root.style.cursor = 'pointer'; }   // back on the dot: "Click me !" slides in again
+      }
+      if (mode === 'idle') REEL.idle(ctx, (now - t0) / 1000, cv.width, cv.height, still);
+      if (!still || mode === 'play') raf = requestAnimationFrame(frame);
+    }
+    function play() {
+      if (mode !== 'idle') return;
+      if (still) { REEL.draw(ctx, 14.5, cv.width, cv.height); return; }   // no motion: just show the logo
+      mode = 'play'; t0 = performance.now(); root.style.cursor = 'default';
+      if (!raf) raf = requestAnimationFrame(frame);
+    }
+    root.style.cursor = 'pointer';
+    root.addEventListener('click', play);
+    root.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); play(); } });
+    if ('IntersectionObserver' in window) new IntersectionObserver(function (e) { visible = e[0].isIntersecting; if (visible && !raf) raf = requestAnimationFrame(frame); }).observe(root);
+    raf = requestAnimationFrame(frame);
+    var tm; window.addEventListener('resize', function () { clearTimeout(tm); tm = setTimeout(function () { var w = cv.width; fit(false); if (cv.width !== w) REEL.prewarm(ctx, cv.width, cv.height); if (!raf) raf = requestAnimationFrame(frame); }, 120); });
+    window.addEventListener('orientationchange', function () { setTimeout(function () { fit(true); if (!raf) raf = requestAnimationFrame(frame); }, 300); });
   }
   var face = window.FontFace ? new FontFace('Jost', 'url(' + base + 'fonts/Jost.ttf)', { weight: '100 900' }) : null;
   if (face) face.load().then(function (f) { document.fonts.add(f); return Promise.all([document.fonts.load('700 100px Jost'), document.fonts.load('500 24px Jost')]); }).then(start, start);
