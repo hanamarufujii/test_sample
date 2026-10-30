@@ -1,0 +1,47 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>U-MA Showreel</title>
+<style>
+@font-face { font-family: "Jost"; src: url("../fonts/Jost.ttf") format("truetype"); font-weight: 100 900; }
+html, body { margin: 0; background: #fff; overflow: hidden; }
+canvas { display: block; width: 1920px; height: 1080px; }
+</style></head>
+<body><canvas id="c" width="1920" height="1080"></canvas>
+<script src="reel.js"></script>
+<script>
+// Every frame is computed from time only.
+var ctx = document.getElementById('c').getContext('2d');
+window.seek = function (t) { UMA_REEL.draw(ctx, t, 1920, 1080); };
+window.ready = Promise.all([document.fonts.load('700 100px Jost'), document.fonts.load('500 24px Jost')]).then(function () { UMA_REEL.init(ctx); seek(0); return true; });
+
+// Soundtrack, written in code: kick on every beat, hats from bar 2, a riser into bar 7, a hit on every scene change.
+window.renderAudio = async function () {
+  var SR = 44100, DUR = 15, ac = new OfflineAudioContext(2, SR * DUR, SR), out = ac.createGain(); out.gain.value = .8; out.connect(ac.destination);
+  var noise = ac.createBuffer(1, SR * 2, SR), d = noise.getChannelData(0); for (var i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  function kick(t, amp) { var o = ac.createOscillator(), g = ac.createGain(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(42, t + .12);
+    g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(.001, t + .38); o.connect(g).connect(out); o.start(t); o.stop(t + .4); }
+  function burst(t, len, type, f, amp) { var s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain(); s.buffer = noise; fl.type = type; fl.frequency.value = f;
+    g.gain.setValueAtTime(amp, t); g.gain.exponentialRampToValueAtTime(.001, t + len); s.connect(fl).connect(g).connect(out); s.start(t); s.stop(t + len + .02); }
+  function boom(t) { var o = ac.createOscillator(), g = ac.createGain(); o.type = 'sine'; o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(30, t + .6);
+    g.gain.setValueAtTime(.7, t); g.gain.exponentialRampToValueAtTime(.001, t + .7); o.connect(g).connect(out); o.start(t); o.stop(t + .75); burst(t, .18, 'lowpass', 2500, .5); }
+  for (var b = 0; b < 30; b++) kick(b * .5, b >= 24 && b < 28 ? 1 : .85);
+  for (var h = 4; h < 28; h++) burst(h * .5 + .25, .05, 'highpass', 7000, .18);
+  for (var c = 0; c < 8; c++) burst(12 + c * .25, .12, 'bandpass', 1600, .45);           // the 8 slice hits of bar 7
+  [2, 4, 6, 8, 10, 12, 14].forEach(boom);
+  // riser into bar 7
+  var rs = ac.createBufferSource(), rf = ac.createBiquadFilter(), rg = ac.createGain(); rs.buffer = noise; rs.loop = true; rf.type = 'bandpass'; rf.Q.value = 4;
+  rf.frequency.setValueAtTime(300, 10); rf.frequency.exponentialRampToValueAtTime(9000, 12); rg.gain.setValueAtTime(.0001, 10); rg.gain.exponentialRampToValueAtTime(.5, 11.98); rg.gain.setValueAtTime(.0001, 12);
+  rs.connect(rf).connect(rg).connect(out); rs.start(10); rs.stop(12.02);
+  var ro = ac.createOscillator(), rog = ac.createGain(); ro.type = 'sawtooth'; ro.frequency.setValueAtTime(110, 10); ro.frequency.exponentialRampToValueAtTime(880, 12);
+  rog.gain.setValueAtTime(.0001, 10); rog.gain.exponentialRampToValueAtTime(.12, 11.98); rog.gain.setValueAtTime(.0001, 12); ro.connect(rog).connect(out); ro.start(10); ro.stop(12.02);
+  var buf = await ac.startRendering();
+  // 16-bit PCM WAV
+  var n = buf.length, ch = 2, data = new DataView(new ArrayBuffer(44 + n * ch * 2));
+  function str(o, s) { for (var i = 0; i < s.length; i++) data.setUint8(o + i, s.charCodeAt(i)); }
+  str(0, 'RIFF'); data.setUint32(4, 36 + n * ch * 2, true); str(8, 'WAVE'); str(12, 'fmt '); data.setUint32(16, 16, true); data.setUint16(20, 1, true); data.setUint16(22, ch, true);
+  data.setUint32(24, SR, true); data.setUint32(28, SR * ch * 2, true); data.setUint16(32, ch * 2, true); data.setUint16(34, 16, true); str(36, 'data'); data.setUint32(40, n * ch * 2, true);
+  var L = buf.getChannelData(0), R = buf.getChannelData(1), o = 44;
+  for (var k = 0; k < n; k++) { [L[k], R[k]].forEach(function (v) { v = Math.max(-1, Math.min(1, v)); data.setInt16(o, v < 0 ? v * 32768 : v * 32767, true); o += 2; }); }
+  var bytes = new Uint8Array(data.buffer), bin = ''; for (var j = 0; j < bytes.length; j += 8192) bin += String.fromCharCode.apply(null, bytes.subarray(j, j + 8192));
+  return btoa(bin);
+};
+</script></body></html>
